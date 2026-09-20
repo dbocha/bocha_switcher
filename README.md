@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="https://github.com/rashn/RuSwitcher/releases/latest"><img src="https://img.shields.io/github/v/release/rashn/RuSwitcher?style=flat-square" alt="Release"></a>
+  <a href="https://formulae.brew.sh/cask/ruswitcher"><img src="https://img.shields.io/homebrew/cask/v/ruswitcher?style=flat-square&label=homebrew" alt="Homebrew Cask"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/rashn/RuSwitcher?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-blue?style=flat-square" alt="macOS 13+">
   <img src="https://img.shields.io/badge/Swift-6-orange?style=flat-square" alt="Swift 6">
@@ -29,7 +30,7 @@
   &nbsp;·&nbsp;
   <a href="https://github.com/rashn/RuSwitcher/releases/latest">Скачать для macOS</a>
   &nbsp;·&nbsp;
-  Homebrew: <code>brew install --cask rashn/ruswitcher/ruswitcher</code>
+  Homebrew: <code>brew install --cask ruswitcher</code>
 </p>
 
 ---
@@ -109,8 +110,9 @@ After you switch layout, RuSwitcher can briefly show the layout flag **right nex
 
 **Homebrew (recommended)**
 
+RuSwitcher is in the official [Homebrew](https://brew.sh) catalog — no tap needed:
+
 ```bash
-brew tap rashn/ruswitcher
 brew install --cask ruswitcher
 ```
 
@@ -249,8 +251,9 @@ RuSwitcher работает через **Apple Screen Sharing**. Печатае�
 
 **Homebrew (рекомендуется)**
 
+RuSwitcher есть в официальном каталоге [Homebrew](https://brew.sh) — tap больше не нужен:
+
 ```bash
-brew tap rashn/ruswitcher
 brew install --cask ruswitcher
 ```
 
