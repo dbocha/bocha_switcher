@@ -170,6 +170,10 @@ If you find RuSwitcher useful:
 - [**Boosty**](https://boosty.to/ruswitcher) — donate
 - **Star** this repo on GitHub
 
+### Code signing
+
+Free code signing on Windows provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
 ### License
 
 [MIT](LICENSE) — free to use, modify, and distribute.
@@ -310,6 +314,10 @@ cp -R RuSwitcher.app /Applications/
 
 - [**Boosty**](https://boosty.to/ruswitcher) — донат
 - **Star** на GitHub
+
+### Подпись кода
+
+Бесплатную подпись Windows-сборок предоставляет [SignPath.io](https://about.signpath.io/), сертификат — [SignPath Foundation](https://signpath.org/).
 
 ### Лицензия
 
