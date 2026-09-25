@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Toolchain
         run: |
@@ -42,7 +42,7 @@ jobs:
           lipo -archs "$APP"/Contents/MacOS/*
           codesign --verify --deep --strict --verbose=2 "$APP"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.dmg.outputs.name }}
           path: ${{ steps.dmg.outputs.name }}.dmg
