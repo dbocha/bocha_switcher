@@ -155,7 +155,7 @@ enum UpdateChecker {
 
         // Приватная temp-директория пользователя вместо общего /tmp (аудит: предсказуемый
         // путь в shared /tmp — окно для symlink-подмены между проверкой и установкой).
-        let tmpPath = NSTemporaryDirectory() + "RuSwitcher-update.dmg"
+        let tmpPath = NSTemporaryDirectory() + "BochaSwitcher-update.dmg"
         let tmpURL = URL(fileURLWithPath: tmpPath)
 
         // 1. Скачать
@@ -193,11 +193,11 @@ enum UpdateChecker {
 
         // Наследие ≤2.6.1: путь успеха не размонтировал том (terminate съедал defer),
         // и он висел по фиксированному пути до перезагрузки. Прибираем тихо.
-        detachUpdateVolume(at: "/tmp/RuSwitcher-update-mount")
+        detachUpdateVolume(at: "/tmp/BochaSwitcher-update-mount")
 
         // 3. Смонтировать DMG (уникальный mountpoint: не пересекается с прошлой попыткой
         //    и не предсказуем заранее — в пару к приватному пути загрузки выше)
-        let mountPoint = NSTemporaryDirectory() + "RuSwitcher-update-mount-\(UUID().uuidString.prefix(8))"
+        let mountPoint = NSTemporaryDirectory() + "BochaSwitcher-update-mount-\(UUID().uuidString.prefix(8))"
         let mount = Process()
         mount.launchPath = "/usr/bin/hdiutil"
         mount.arguments = ["attach", tmpPath, "-nobrowse", "-readonly", "-mountpoint", mountPoint]
@@ -267,7 +267,7 @@ enum UpdateChecker {
         //    приложение. replaceItemAt НЕ умеет переносить элемент напрямую с
         //    read-only тома DMG — именно это давало «Ошибку установки».
         let stagingDir = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("RuSwitcher-update-staging", isDirectory: true)
+            .appendingPathComponent("BochaSwitcher-update-staging", isDirectory: true)
         try? fm.removeItem(at: stagingDir)
         let stagedApp = stagingDir.appendingPathComponent(appName)
         do {

@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "RuSwitcher",
+    name: "BochaSwitcher",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "RuSwitcher",
-            path: "Sources/RuSwitcher",
+            name: "BochaSwitcher",
+            path: "Sources/BochaSwitcher",
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("Carbon"),

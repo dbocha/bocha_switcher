@@ -2,7 +2,7 @@
 set -e
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_NAME="RuSwitcher"
+APP_NAME="BochaSwitcher"
 APP_BUNDLE="$PROJECT_DIR/$APP_NAME.app"
 # Universal-сборка кладёт продукт сюда (а не в .build/release)
 BUILD_DIR="$PROJECT_DIR/.build/apple/Products/Release"
@@ -55,7 +55,7 @@ cp "$PROJECT_DIR/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
 echo "→ Stamped Info.plist: CFBundleShortVersionString=$SHORT_VERSION$DEV_TAG CFBundleVersion=$BUILD_VERSION"
 
 # 5. Копируем иконку
-cp "$PROJECT_DIR/RuSwitcher.icns" "$APP_BUNDLE/Contents/Resources/RuSwitcher.icns"
+cp "$PROJECT_DIR/BochaSwitcher.icns" "$APP_BUNDLE/Contents/Resources/BochaSwitcher.icns"
 
 # 6. Создаём PkgInfo
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
@@ -67,7 +67,7 @@ SIGN_ID="${RS_SIGN_ID:--}"
 echo "→ Code signing ($SIGN_ID)..."
 codesign --force --deep --sign "$SIGN_ID" \
     --options runtime \
-    --entitlements "$PROJECT_DIR/RuSwitcher.entitlements" \
+    --entitlements "$PROJECT_DIR/BochaSwitcher.entitlements" \
     "$APP_BUNDLE"
 
 echo ""

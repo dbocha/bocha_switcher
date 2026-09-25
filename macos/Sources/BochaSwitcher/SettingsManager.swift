@@ -9,43 +9,43 @@ final class SettingsManager: @unchecked Sendable {
     private let defaults = UserDefaults.standard
 
     private enum Keys {
-        static let autoSwitch = "com.ruswitcher.autoSwitch"
-        static let layout1ID = "com.ruswitcher.layout1ID"
-        static let layout2ID = "com.ruswitcher.layout2ID"
-        static let debugLog = "com.ruswitcher.debugLog"
-        static let skippedVersion = "com.ruswitcher.skippedVersion"
-        static let lastUpdateCheck = "com.ruswitcher.lastUpdateCheck"
-        static let launchAtLogin = "com.ruswitcher.launchAtLogin"
-        static let checkUpdatesEnabled = "com.ruswitcher.checkUpdatesEnabled"
-        static let interfaceLanguage = "com.ruswitcher.interfaceLanguage"
-        static let permissionsWereGranted = "com.ruswitcher.permissionsWereGranted"
-        static let launchAtLoginAsked = "com.ruswitcher.launchAtLoginAsked"
-        static let perAppLayout = "com.ruswitcher.perAppLayout"
-        static let triggerKey = "com.ruswitcher.triggerKey"
-        static let triggerRightOnly = "com.ruswitcher.triggerRightOnly"
-        static let triggerDoubleTap = "com.ruswitcher.triggerDoubleTap"
-        static let switchHotkey = "com.ruswitcher.switchHotkey"
-        static let switchDoubleTap = "com.ruswitcher.switchDoubleTap"
-        static let switchRightOnly = "com.ruswitcher.switchRightOnly"
-        static let caseHotkey = "com.ruswitcher.caseHotkey"       // issue #29
-        static let caseDoubleTap = "com.ruswitcher.caseDoubleTap"
-        static let caseRightOnly = "com.ruswitcher.caseRightOnly"
-        static let autoConvert = "com.ruswitcher.autoConvert"
-        static let smartConversion = "com.ruswitcher.smartConversion"
-        static let convertByText = "com.ruswitcher.convertByText"
-        static let convertWholeLine = "com.ruswitcher.convertWholeLine"
-        static let remoteDesktopMode = "com.ruswitcher.remoteDesktopMode"
-        static let showRemoteDesktopBeta = "com.ruswitcher.showRemoteDesktopBeta"
-        static let autoConvertOffered = "com.ruswitcher.autoConvertOffered"
-        static let lastWhatsNewVersion = "com.ruswitcher.lastWhatsNewVersion"
-        static let keySound = "com.ruswitcher.keySound"
-        static let caretFlag = "com.ruswitcher.caretFlag"
-        static let secureInputNotice = "com.ruswitcher.secureInputNotice"
-        static let monochromeIcon = "com.ruswitcher.monochromeIcon"
-        static let deniedAppsAdded = "com.ruswitcher.deniedAppsAdded"
-        static let deniedAppsRemoved = "com.ruswitcher.deniedAppsRemoved"
-        static let deniedWords = "com.ruswitcher.deniedWords"
-        static let alwaysConvertWords = "com.ruswitcher.alwaysConvertWords"
+        static let autoSwitch = "com.bochaswitcher.autoSwitch"
+        static let layout1ID = "com.bochaswitcher.layout1ID"
+        static let layout2ID = "com.bochaswitcher.layout2ID"
+        static let debugLog = "com.bochaswitcher.debugLog"
+        static let skippedVersion = "com.bochaswitcher.skippedVersion"
+        static let lastUpdateCheck = "com.bochaswitcher.lastUpdateCheck"
+        static let launchAtLogin = "com.bochaswitcher.launchAtLogin"
+        static let checkUpdatesEnabled = "com.bochaswitcher.checkUpdatesEnabled"
+        static let interfaceLanguage = "com.bochaswitcher.interfaceLanguage"
+        static let permissionsWereGranted = "com.bochaswitcher.permissionsWereGranted"
+        static let launchAtLoginAsked = "com.bochaswitcher.launchAtLoginAsked"
+        static let perAppLayout = "com.bochaswitcher.perAppLayout"
+        static let triggerKey = "com.bochaswitcher.triggerKey"
+        static let triggerRightOnly = "com.bochaswitcher.triggerRightOnly"
+        static let triggerDoubleTap = "com.bochaswitcher.triggerDoubleTap"
+        static let switchHotkey = "com.bochaswitcher.switchHotkey"
+        static let switchDoubleTap = "com.bochaswitcher.switchDoubleTap"
+        static let switchRightOnly = "com.bochaswitcher.switchRightOnly"
+        static let caseHotkey = "com.bochaswitcher.caseHotkey"       // issue #29
+        static let caseDoubleTap = "com.bochaswitcher.caseDoubleTap"
+        static let caseRightOnly = "com.bochaswitcher.caseRightOnly"
+        static let autoConvert = "com.bochaswitcher.autoConvert"
+        static let smartConversion = "com.bochaswitcher.smartConversion"
+        static let convertByText = "com.bochaswitcher.convertByText"
+        static let convertWholeLine = "com.bochaswitcher.convertWholeLine"
+        static let remoteDesktopMode = "com.bochaswitcher.remoteDesktopMode"
+        static let showRemoteDesktopBeta = "com.bochaswitcher.showRemoteDesktopBeta"
+        static let autoConvertOffered = "com.bochaswitcher.autoConvertOffered"
+        static let lastWhatsNewVersion = "com.bochaswitcher.lastWhatsNewVersion"
+        static let keySound = "com.bochaswitcher.keySound"
+        static let caretFlag = "com.bochaswitcher.caretFlag"
+        static let secureInputNotice = "com.bochaswitcher.secureInputNotice"
+        static let monochromeIcon = "com.bochaswitcher.monochromeIcon"
+        static let deniedAppsAdded = "com.bochaswitcher.deniedAppsAdded"
+        static let deniedAppsRemoved = "com.bochaswitcher.deniedAppsRemoved"
+        static let deniedWords = "com.bochaswitcher.deniedWords"
+        static let alwaysConvertWords = "com.bochaswitcher.alwaysConvertWords"
     }
 
     private init() {}
@@ -241,7 +241,7 @@ final class SettingsManager: @unchecked Sendable {
     }
 
     /// Показывать ли тумблер «Режим удалённого стола» (видимая бета в 2.5). По умолчанию
-    /// ВКЛючён; спрятать можно явно: `defaults write com.ruswitcher.app com.ruswitcher.showRemoteDesktopBeta -bool NO`.
+    /// ВКЛючён; спрятать можно явно: `defaults write world.whyia.bochaswitcher com.bochaswitcher.showRemoteDesktopBeta -bool NO`.
     var showRemoteDesktopBeta: Bool {
         get {
             // Нет записи в defaults → считаем включённым (дефолт ON для 2.5).
@@ -319,7 +319,7 @@ final class SettingsManager: @unchecked Sendable {
     /// Фид обновлений: version.json в корне ветки main.
     static var versionFeedURL: String { "https://raw.githubusercontent.com/\(githubOwner)/\(githubRepo)/main/version.json" }
     /// Имя DMG в релизе: «<dmgBaseName>-<версия>.dmg».
-    static let dmgBaseName = "RuSwitcher"
+    static let dmgBaseName = "BochaSwitcher"
     static func releaseDMGURL(version: String) -> String {
         "\(githubURL)/releases/download/v\(version)/\(dmgBaseName)-\(version).dmg"
     }

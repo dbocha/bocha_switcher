@@ -214,7 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Сбрасывает старые записи разрешений для нашего bundle ID
     private func resetPermissions() {
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.ruswitcher.app"
+        let bundleID = Bundle.main.bundleIdentifier ?? "world.whyia.bochaswitcher"
         rslog("Resetting TCC entries for \(bundleID)")
 
         for service in ["Accessibility", "ListenEvent"] {
@@ -674,7 +674,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Строка версии (с dev-меткой для непубликуемых сборок) — чтобы было видно, какой билд.
         let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let devTag = Bundle.main.infoDictionary?["RSDevTag"] as? String ?? ""
-        let verItem = NSMenuItem(title: "RuSwitcher \(ver)\(devTag)", action: nil, keyEquivalent: "")
+        let verItem = NSMenuItem(title: "Bocha Switcher \(ver)\(devTag)", action: nil, keyEquivalent: "")
         verItem.isEnabled = false
         menu.addItem(verItem)
         menu.addItem(NSMenuItem.separator())

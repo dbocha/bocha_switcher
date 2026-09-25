@@ -51,7 +51,6 @@ final class SettingsWindowController {
         tabView.addTabViewItem(createGeneralTab())
         tabView.addTabViewItem(createAdvancedTab())     // «Расширенные» — сразу после «Основных»
         tabView.addTabViewItem(createExceptionsTab())
-        tabView.addTabViewItem(createAboutTab())
 
         win.contentView = tabView
         win.makeKeyAndOrderFront(nil)
@@ -358,48 +357,6 @@ final class SettingsWindowController {
             get: { SettingsManager.shared.alwaysConvertWords },
             set: { SettingsManager.shared.alwaysConvertWords = $0 },
             addWordPrompt: L10n.settingsAddWordPrompt))
-
-        item.view = topAligned(view)
-        return item
-    }
-
-    // MARK: - About Tab
-
-    private func createAboutTab() -> NSTabViewItem {
-        let item = NSTabViewItem()
-        item.label = L10n.settingsTabAbout
-
-        let view = NSView(frame: NSRect(x: 0, y: 0, width: 460, height: 360))
-        var y: CGFloat = 310
-
-        // Название и версия
-        let titleLabel = NSTextField(labelWithString: "RuSwitcher")
-        titleLabel.font = .boldSystemFont(ofSize: 20)
-        titleLabel.frame = NSRect(x: 20, y: y, width: 420, height: 28)
-        view.addSubview(titleLabel)
-        y -= 25
-
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-        let devTag = Bundle.main.infoDictionary?["RSDevTag"] as? String ?? ""
-        let versionLabel = NSTextField(labelWithString: "v\(version)\(devTag) — \(L10n.settingsVersion)")
-        versionLabel.frame = NSRect(x: 20, y: y, width: 420, height: 20)
-        versionLabel.font = .systemFont(ofSize: 12)
-        versionLabel.textColor = .secondaryLabelColor
-        view.addSubview(versionLabel)
-        y -= 40
-
-        // Кнопка «Страница проекта»
-        let projectBtn = NSButton(title: L10n.menuProjectPage, target: self, action: #selector(openGitHub))
-        projectBtn.frame = NSRect(x: 20, y: y, width: 200, height: 32)
-        projectBtn.bezelStyle = .rounded
-        view.addSubview(projectBtn)
-        y -= 40
-
-        // Проверить обновления
-        let updateBtn = NSButton(title: L10n.menuCheckUpdates, target: self, action: #selector(checkUpdates))
-        updateBtn.frame = NSRect(x: 20, y: y, width: 200, height: 32)
-        updateBtn.bezelStyle = .rounded
-        view.addSubview(updateBtn)
 
         item.view = topAligned(view)
         return item
@@ -785,16 +742,6 @@ final class SettingsWindowController {
         SettingsManager.shared.debugLogEnabled = sender.state == .on
     }
 
-    @objc private func openGitHub() {
-        if let url = URL(string: SettingsManager.githubURL) {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    @objc private func checkUpdates() {
-        UpdateChecker.checkNow()
-    }
-
     @objc private func showLogFile() {
         let path = logFilePath()
         if FileManager.default.fileExists(atPath: path) {
@@ -817,7 +764,7 @@ final class SettingsWindowController {
         let url = URL(fileURLWithPath: path)
         if let service = NSSharingService(named: .composeEmail) {
             service.perform(withItems: [
-                "RuSwitcher debug log" as NSString,
+                "Bocha Switcher debug log" as NSString,
                 url
             ])
         } else {
@@ -827,7 +774,7 @@ final class SettingsWindowController {
     }
 
     private func logFilePath() -> String {
-        let logDir = NSHomeDirectory() + "/Library/Logs/RuSwitcher"
-        return logDir + "/ruswitcher.log"
+        let logDir = NSHomeDirectory() + "/Library/Logs/BochaSwitcher"
+        return logDir + "/bochaswitcher.log"
     }
 }

@@ -11,7 +11,7 @@ enum AppRelauncher {
         // путь с кавычкой/;/`$()` привёл бы к shell-инъекции. sh не пере-парсит $1.
         let task = Process()
         task.launchPath = "/bin/sh"
-        task.arguments = ["-c", "sleep 1; open \"$1\"", "ruswitcher-relaunch", bundlePath]
+        task.arguments = ["-c", "sleep 1; open \"$1\"", "bochaswitcher-relaunch", bundlePath]
         try? task.run()
         NSApplication.shared.terminate(nil)
     }
