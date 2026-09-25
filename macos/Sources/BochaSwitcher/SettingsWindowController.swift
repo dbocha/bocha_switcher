@@ -64,7 +64,7 @@ final class SettingsWindowController {
         autoSwitchCheckbox?.state = enabled ? .on : .off
     }
 
-    /// Обновить чекбокс «флаг у курсора» извне (когда переключили из меню)
+    /// Обновить чекбокс «раскладка у курсора» извне (когда переключили из меню)
     func updateCaretFlagState(_ enabled: Bool) {
         caretFlagCheckbox?.state = enabled ? .on : .off
     }
@@ -297,7 +297,7 @@ final class SettingsWindowController {
         view.addSubview(acHint)
         y -= 38
 
-        // Флаг у курсора (issue #10)
+        // Раскладка у курсора (issue #10)
         let caretFlag = NSButton(checkboxWithTitle: L10n.settingsCaretFlag, target: self, action: #selector(caretFlagChanged))
         caretFlag.frame = NSRect(x: 20, y: y - 22, width: 420, height: 22)
         caretFlag.state = SettingsManager.shared.caretFlag ? .on : .off

@@ -12,9 +12,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var iconRefreshTimer: Timer?
     private var updateCheckTimer: Timer?   // периодическая авто-проверка обновлений, пока приложение работает
     private var monitoringActive = false
-    private var caretIndicator: CaretIndicator?   // issue #10: флаг у каретки (бета, по умолчанию OFF)
+    private var caretIndicator: CaretIndicator?   // issue #10: подпись раскладки у каретки (бета, по умолчанию OFF)
     private let secureNotice = SecureInputNotice()  // issue #27: подсказка о защ. вводе без кражи фокуса
-    private var lastFlagShown: String?            // идентичность раскладки для детекта смены (не title!)
+    private var lastLabelShown: String?           // подпись раскладки для детекта смены
     private var badgeCache: [String: NSImage] = [:]  // монохромные плашки, чтобы не перерисовывать 2с-опросом
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -457,7 +457,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.textConverter.clearState()
             }
         }
-        updateStatusIcon()        // сначала выставляем флаг меню-бара, пока индикатора ещё нет
+        updateStatusIcon()        // сначала выставляем значок меню-бара, пока индикатора ещё нет
         syncCaretIndicator()      // затем создаём индикатор — без стартового ложного «попа»
         // Страховка к issue #9: системное уведомление о смене раскладки ненадёжно
         // (особенно через удалённый стол — на той машине оно часто не доходит), поэтому
@@ -679,7 +679,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(verItem)
         menu.addItem(NSMenuItem.separator())
 
-        // Список раскладок как в системном меню ввода: флаг + имя, галочка на текущей,
+        // Список раскладок как в системном меню ввода: имя, галочка на текущей,
         // клик — переключение. Актуализируется в menuWillOpen при каждом открытии.
         for item in layoutMenuItems() { menu.addItem(item) }
         menu.addItem(NSMenuItem.separator())
@@ -703,8 +703,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         caretFlagItem.target = self
         caretFlagItem.state = SettingsManager.shared.caretFlag ? .on : .off
         menu.addItem(caretFlagItem)
-
-        // Единый стиль меню-бара (Sequoia): монохромная плашка вместо цветного флага.
 
         // Режим удалённого стола отложен в 2.5 — тумблер скрыт за флагом (для тестирования).
         if SettingsManager.shared.showRemoteDesktopBeta {
@@ -750,14 +748,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Метка пунктов-раскладок, чтобы находить и обновлять их группу в меню.
     private static let layoutItemTag = 741
 
-    /// Пункты списка раскладок: «флаг + локализованное имя», галочка на текущей.
+    /// Пункты списка раскладок: локализованное имя, галочка на текущей.
     private func layoutMenuItems() -> [NSMenuItem] {
         let currentID = LayoutSwitcher.currentLayoutID()
         return LayoutSwitcher.installedLayouts().map { source in
             let id = LayoutSwitcher.sourceID(source)
-            let badge = LayoutSwitcher.languageCode(source).map(Self.flagBadge(forLanguage:))
-            let title = [badge, LayoutSwitcher.sourceName(source)].compactMap { $0 }.joined(separator: " ")
-            let item = NSMenuItem(title: title, action: #selector(selectLayout(_:)), keyEquivalent: "")
+            let item = NSMenuItem(title: LayoutSwitcher.sourceName(source), action: #selector(selectLayout(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = id
             item.state = (id == currentID) ? .on : .off
@@ -789,34 +785,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func updateStatusIcon() {
-        let flag = flagForCurrentLayout()
+        let label = currentLayoutLabel()
         // Каретку дёргаем ТОЛЬКО при реальной смене раскладки: updateStatusIcon зовётся ещё и
-        // 2-секундным опросом-страховкой, иначе флаг у каретки выскакивал бы каждые 2с.
-        // Сравниваем по флагу-идентичности, а не по title — title у иконки пуст.
-        let changed = lastFlagShown != flag
-        lastFlagShown = flag
+        // 2-секундным опросом-страховкой, иначе подпись у каретки выскакивала бы каждые 2с.
+        let changed = lastLabelShown != label
+        lastLabelShown = label
         statusItem.button?.title = ""
-        statusItem.button?.image = badgeImage(for: currentBadgeLabel())
+        statusItem.button?.image = badgeImage(for: label)
         if changed { caretIndicator?.layoutChanged() }
     }
 
-    /// Подпись монохромной плашки — родная аббревиатура языка, как у системного индикатора.
-    private func currentBadgeLabel() -> String {
-        if let lang = LayoutSwitcher.currentLanguageCode()?.lowercased(), !lang.isEmpty {
-            // 'iw' — устаревший код иврита: нормализуем, как и flagBadge.
-            let code = LayoutDetector.isHebrew(lang) ? "he" : String(lang.prefix(2))
-            let labels: [String: String] = [
-                "ru": "RU", "en": "EN", "uk": "УК", "be": "БЕ",
-                "de": "DE", "fr": "FR", "es": "ES", "it": "IT",
-                "pt": "PT", "pl": "PL", "ja": "あ", "zh": "拼", "ko": "한",
-                "he": "עב",   // иврит (3.0)
-                "el": "ΕΛ", "bg": "БГ", "hy": "ՀԱ", "ka": "ქა",
-            ]
-            return labels[code] ?? code.uppercased()
+    /// Подпись текущей раскладки — родная аббревиатура языка («RU», «EN»), как у системного
+    /// индикатора. Язык берём по коду (BCP-47), а не по подстроке в ID — иначе
+    /// "Belarusian" ложно матчил бы "ru".
+    func currentLayoutLabel() -> String {
+        guard let lang = LayoutSwitcher.currentLanguageCode()?.lowercased(), !lang.isEmpty else {
+            // Язык раскладки недоступен — мягкий фолбэк по ID.
+            let id = LayoutSwitcher.currentLayoutID().lowercased()
+            return (id.contains("russian") || id.hasSuffix(".ru")) ? "RU" : "EN"
         }
-        // Язык раскладки недоступен — мягкий фолбэк по ID (как у flagForCurrentLayout).
-        let id = LayoutSwitcher.currentLayoutID().lowercased()
-        return (id.contains("russian") || id.hasSuffix(".ru")) ? "RU" : "EN"
+        // 'iw' — устаревший код иврита: нормализуем.
+        let code = LayoutDetector.isHebrew(lang) ? "he" : String(lang.prefix(2))
+        let labels: [String: String] = [
+            "ru": "RU", "en": "EN", "uk": "УК", "be": "БЕ",
+            "de": "DE", "fr": "FR", "es": "ES", "it": "IT",
+            "pt": "PT", "pl": "PL", "ja": "あ", "zh": "拼", "ko": "한",
+            "he": "עב",   // иврит (3.0)
+            "el": "ΕΛ", "bg": "БГ", "hy": "ՀԱ", "ka": "ქა",
+        ]
+        return labels[code] ?? code.uppercased()
     }
 
     /// Монохромная плашка в стиле системного индикатора раскладки Sequoia: скруглённый
@@ -842,32 +839,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return image
     }
 
-    /// Флаг текущей раскладки по коду языка (BCP-47), а не по подстроке в ID — иначе
-    /// "Belarusian" ложно матчил "ru", а любая не-RU/EN пара показывалась как 🇺🇸.
-    func flagForCurrentLayout() -> String {
-        guard let lang = LayoutSwitcher.currentLanguageCode()?.lowercased(), !lang.isEmpty else {
-            // Язык раскладки недоступен — мягкий фолбэк по ID.
-            let id = LayoutSwitcher.currentLayoutID().lowercased()
-            return (id.contains("russian") || id.hasSuffix(".ru")) ? "🇷🇺" : "🇺🇸"
-        }
-        return Self.flagBadge(forLanguage: lang)
-    }
-
-    /// Единый бейдж раскладки для иконки меню-бара и списка раскладок в меню:
-    /// «🇷🇺» для известных языков, иначе код («EL»).
-    private static func flagBadge(forLanguage lang: String) -> String {
-        // Иврит может прийти устаревшим кодом 'iw' — движок его понимает (isHebrew),
-        // индикация должна тоже, иначе в баре будет «IW» вместо 🇮🇱.
-        let code = LayoutDetector.isHebrew(lang) ? "he" : String(lang.lowercased().prefix(2))
-        let flags: [String: String] = [
-            "ru": "🇷🇺", "en": "🇺🇸", "uk": "🇺🇦", "be": "🇧🇾",
-            "de": "🇩🇪", "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
-            "pt": "🇵🇹", "pl": "🇵🇱", "ja": "🇯🇵", "zh": "🇨🇳", "ko": "🇰🇷",
-            "he": "🇮🇱",   // иврит (3.0). Арабский в 3.1 — глифом ع (флага нет), см. дизайн 3.0.
-        ]
-        return flags[code] ?? code.uppercased()
-    }
-
     /// issue #10: создаёт/освобождает индикатор каретки по флагу настроек. Создаётся лениво,
     /// только когда фича включена И мониторинг запущен (нужны разрешения).
     private func syncCaretIndicator() {
@@ -875,7 +846,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if SettingsManager.shared.caretFlag, monitoringActive {
             if caretIndicator == nil {
                 let ci = CaretIndicator()
-                ci.flagProvider = { [weak self] in self?.flagForCurrentLayout() ?? "" }
+                ci.labelProvider = { [weak self] in self?.currentLayoutLabel() ?? "" }
                 caretIndicator = ci
             }
         } else {

@@ -218,7 +218,7 @@ final class SettingsManager: @unchecked Sendable {
         set { defaults.set(newValue, forKey: Keys.convertWholeLine) }
     }
 
-    /// issue #10: показывать флаг раскладки у текстовой каретки (бета). По умолчанию ВЫКЛ.
+    /// issue #10: показывать подпись раскладки у текстовой каретки (бета). По умолчанию ВЫКЛ.
     /// issue #27: показывать неактивирующую подсказку, когда защищённый ввод ставит на паузу.
     /// По умолчанию включено; можно отключить тем, кому она мешает.
     var secureInputNoticeEnabled: Bool {

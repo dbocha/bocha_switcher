@@ -2,23 +2,23 @@ import AppKit
 import ApplicationServices
 import CoreGraphics
 
-/// issue #10: показывает флаг текущей раскладки рядом с текстовой кареткой — кратко после
+/// issue #10: показывает подпись текущей раскладки («RU»/«EN») рядом с текстовой кареткой — кратко после
 /// переключения, прячется при печати/клике. Позицию каретки берём через Accessibility
 /// (kAXBoundsForRangeParameterizedAttribute). Если приложение её не отдаёт (Electron/веб,
-/// часть терминалов) — просто не показываем; флаг в меню-баре остаётся. Click-through,
+/// часть терминалов) — просто не показываем; значок в меню-баре остаётся. Click-through,
 /// не крадёт фокус (LSUIElement + .nonactivatingPanel + orderFrontRegardless).
 @MainActor
 final class CaretIndicator {
     private let panel: NSPanel
     private let label: NSTextField
-    private var lastFlag = ""
+    private var lastLabel = ""
     private var hideTimer: Timer?
     private var visible = false
 
-    /// Поставщик флага текущей раскладки — обычно AppDelegate.flagForCurrentLayout.
-    var flagProvider: () -> String = { "" }
+    /// Поставщик подписи текущей раскладки — обычно AppDelegate.currentLayoutLabel.
+    var labelProvider: () -> String = { "" }
 
-    /// Сколько держим флаг после переключения, прежде чем спрятать сам (если не печатают).
+    /// Сколько держим подпись после переключения, прежде чем спрятать сам (если не печатают).
     private let showDuration: TimeInterval = 1.6
 
     init() {
@@ -38,15 +38,16 @@ final class CaretIndicator {
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         panel.isExcludedFromWindowsMenu = true
 
-        // Полупрозрачная скруглённая подложка — читаемость флага на любом фоне.
+        // Тёмная скруглённая подложка — читаемость подписи на любом фоне.
         let backdrop = NSView(frame: NSRect(x: 0, y: 0, width: 30, height: 24))
         backdrop.wantsLayer = true
-        backdrop.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.28).cgColor
+        backdrop.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor
         backdrop.layer?.cornerRadius = 5
         panel.contentView = backdrop
 
         label = NSTextField(labelWithString: "")
-        label.font = .systemFont(ofSize: 14)
+        label.font = .systemFont(ofSize: 12, weight: .bold)
+        label.textColor = .white
         label.alignment = .center
         label.isBezeled = false
         label.isEditable = false
@@ -61,7 +62,7 @@ final class CaretIndicator {
 
     // MARK: - Entry points (вызываются из AppDelegate)
 
-    /// Реальная смена раскладки → показать флаг у каретки (на showDuration).
+    /// Реальная смена раскладки → показать подпись у каретки (на showDuration).
     func layoutChanged() {
         guard SettingsManager.shared.caretFlag else { return }
         showAtCaret()
@@ -75,16 +76,16 @@ final class CaretIndicator {
         hideTimer?.invalidate(); hideTimer = nil
         panel.orderOut(nil)
         visible = false
-        lastFlag = ""
+        lastLabel = ""
     }
 
     // MARK: - Internals
 
     private func showAtCaret() {
         guard let rect = axCaretRectAppKit() else { hide(); return }   // нет каретки → не показываем
-        let flag = flagProvider()
-        guard !flag.isEmpty else { hide(); return }
-        if flag != lastFlag { label.stringValue = flag; lastFlag = flag }
+        let text = labelProvider()
+        guard !text.isEmpty else { hide(); return }
+        if text != lastLabel { label.stringValue = text; lastLabel = text }
         position(forCaret: rect)
         if !panel.isVisible { panel.orderFrontRegardless() }            // показ БЕЗ кражи фокуса
         fade(to: 1, duration: 0.12)
@@ -110,7 +111,7 @@ final class CaretIndicator {
         }
     }
 
-    /// Кладём флаг справа от каретки (по центру по вертикали), прижимая к видимой области экрана.
+    /// Кладём подпись справа от каретки (по центру по вертикали), прижимая к видимой области экрана.
     private func position(forCaret caret: NSRect) {
         let gap: CGFloat = 6
         let size = panel.frame.size
