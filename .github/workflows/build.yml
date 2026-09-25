@@ -1,0 +1,49 @@
+name: Build macOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # Universal (arm64 + x86_64) .app; ad-hoc подпись, пока нет своего сертификата
+      - name: Build app
+        env:
+          RS_SIGN_ID: "-"
+        run: bash macos/build_app.sh
+
+      # Простой DMG без Finder/AppleScript: на раннере оформление через Finder ненадёжно
+      - name: Create DMG
+        id: dmg
+        run: |
+          VERSION=$(python3 -c "import json;print(json.load(open('version.json'))['version'])")
+          APP=$(ls -d macos/*.app)
+          NAME="$(basename "$APP" .app)-${VERSION}-$(git rev-parse --short HEAD)"
+          STAGE=$(mktemp -d)
+          cp -R "$APP" "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "$(basename "$APP" .app)" -srcfolder "$STAGE" -format UDZO -ov "$NAME.dmg"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Verify
+        run: |
+          APP=$(ls -d macos/*.app)
+          lipo -archs "$APP"/Contents/MacOS/*
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.dmg.outputs.name }}
+          path: ${{ steps.dmg.outputs.name }}.dmg
+          retention-days: 30
