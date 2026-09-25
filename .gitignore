@@ -22,3 +22,11 @@ DerivedData/
 # В репозитории — только код приложения и скрипты его сборки/дистрибуции.
 docs/
 generate_habr_cover.swift
+
+# Ключи подписи — только в секретах GitHub и в ~/.bocha-signing
+*.p12
+*.key
+
+# Ключи подписи — только в секретах GitHub и в ~/.bocha-signing
+*.p12
+*.key

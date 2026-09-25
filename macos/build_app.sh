@@ -69,7 +69,7 @@ echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
 SIGN_ID="${RS_SIGN_ID:--}"
 echo "→ Code signing ($SIGN_ID)..."
 codesign --force --deep --sign "$SIGN_ID" \
-    --options runtime \
+    --options runtime --timestamp=none \
     --entitlements "$PROJECT_DIR/BochaSwitcher.entitlements" \
     "$APP_BUNDLE"
 
