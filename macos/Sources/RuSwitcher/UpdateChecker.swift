@@ -1,14 +1,12 @@
 import AppKit
 import Foundation
+import Security
 
 /// Проверяет наличие обновлений через GitHub
 @MainActor
 enum UpdateChecker {
-    // URL к JSON с информацией о версии (стабильный фид).
-    private static let versionURL = "https://raw.githubusercontent.com/rashn/RuSwitcher/main/version.json"
-    // Фид пред-релизов (бет). Читается ТОЛЬКО если включён бета-канал в настройках.
-    // Может отсутствовать (404) — тогда бета-клиент просто остаётся на стабильном фиде.
-    private static let betaVersionURL = "https://raw.githubusercontent.com/rashn/RuSwitcher/main/version-beta.json"
+    // URL к JSON с информацией о версии.
+    private static var versionURL: String { SettingsManager.versionFeedURL }
 
     /// Структура JSON версии
     private struct VersionInfo: Decodable {
@@ -52,9 +50,8 @@ enum UpdateChecker {
     }
 
     private static func check(silent: Bool) async {
-        guard let info = await fetchApplicableInfo() else {
-            // nil = стабильный фид недостижим (сеть). Бета-фид опционален и на это не влияет.
-            rslog("UpdateChecker: stable feed unreachable")
+        guard let info = await fetchInfo(from: versionURL) else {
+            rslog("UpdateChecker: feed unreachable")
             if !silent { await showErrorAlert() }
             return
         }
@@ -73,25 +70,7 @@ enum UpdateChecker {
         }
     }
 
-    /// Выбирает применимый фид. Стабильный — всегда. Если включён бета-канал, дополнительно
-    /// читает фид пред-релизов и возвращает более СВЕЖУЮ из двух версий (по semver). Так
-    /// бета-тестер получает беты, но автоматически «сходит» на финальный стабильный релиз,
-    /// когда тот обгонит бету. Отсутствие/ошибка бета-фида не мешает стабильному.
-    private static func fetchApplicableInfo() async -> VersionInfo? {
-        guard let stable = await fetchInfo(from: versionURL) else { return nil }
-        guard SettingsManager.shared.betaChannelEnabled else { return stable }
-        guard let beta = await fetchInfo(from: betaVersionURL) else { return stable }
-        return compareVersions(beta.version, isNewerThan: stable.version) ? beta : stable
-    }
-
-    /// Текст изменений текущей беты (поле notes бета-фида) — для отдельной «витрины беты».
-    /// nil, если бета-фид недоступен или без notes.
-    static func fetchBetaNotes() async -> String? {
-        await fetchInfo(from: betaVersionURL)?.notes
-    }
-
-    /// Скачивает и декодирует VersionInfo из фида. nil при сетевой ошибке или не-200
-    /// (напр. бета-фида ещё нет — тогда вызывающий остаётся на стабильном).
+    /// Скачивает и декодирует VersionInfo из фида. nil при сетевой ошибке или не-200.
     private static func fetchInfo(from urlString: String) async -> VersionInfo? {
         guard let url = URL(string: urlString) else { return nil }
         do {
@@ -146,7 +125,18 @@ enum UpdateChecker {
             return
         }
 
-        // 0a. sha256 обязателен для установки на месте: молча подменять приложение
+        // 0a. Ad-hoc подпись (сборка без сертификата): её назначенное требование — хэш
+        //     конкретной сборки, новой версии оно заведомо не удовлетворит (шаг 5).
+        //     Отправляем на страницу релиза, как при отсутствии хэша.
+        guard !isAdHocSigned() else {
+            rslog("Update: running app is ad-hoc signed — falling back to browser download")
+            if let url = URL(string: "\(SettingsManager.githubURL)/releases/latest") {
+                NSWorkspace.shared.open(url)
+            }
+            return
+        }
+
+        // 0b. sha256 обязателен для установки на месте: молча подменять приложение
         //     keylogger-класса без проверки нельзя. Нет хэша — откат на загрузку
         //     в браузере, где работает Gatekeeper/нотаризация.
         guard let expectedSHA = info.sha256, !expectedSHA.isEmpty else {
@@ -243,9 +233,10 @@ enum UpdateChecker {
 
         // 5. ПРОВЕРКА ПОДПИСИ: единственная реальная защита от подмены кода.
         //    sha256 защищает лишь от битой загрузки — если подменить и DMG, и хэш,
-        //    спасает только пиннинг Developer ID нашей команды.
-        guard verifyNotarizedSignature(at: sourceApp.path) else {
-            rslog("Update: signature/notarization check FAILED — aborting")
+        //    спасает только требование, чтобы новая версия была подписана тем же
+        //    сертификатом, что и запущенная.
+        guard verifySameSigner(at: sourceApp.path) else {
+            rslog("Update: signature check FAILED — aborting")
             await showInstallError(L10n.updateIntegrityFailed)
             return
         }
@@ -325,23 +316,39 @@ enum UpdateChecker {
         detach.waitUntilExit()
     }
 
-    /// Проверяет, что бандл подписан Developer ID нашей команды и проходит строгую
-    /// проверку целостности (codesign --verify с пиннингом Team ID).
-    private static func verifyNotarizedSignature(at path: String) -> Bool {
-        let requirement = "anchor apple generic and certificate leaf[subject.OU] = \"\(SettingsManager.developerTeamID)\""
-        let process = Process()
-        process.launchPath = "/usr/bin/codesign"
-        process.arguments = ["--verify", "--deep", "--strict", "-R=\(requirement)", path]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-            process.waitUntilExit()
-            return process.terminationStatus == 0
-        } catch {
-            rslog("Update: codesign verify error — \(error)")
-            return false
-        }
+    /// Статический код запущенного приложения.
+    private static func currentStaticCode() -> SecStaticCode? {
+        var code: SecCode?
+        guard SecCodeCopySelf([], &code) == errSecSuccess, let code else { return nil }
+        var staticCode: SecStaticCode?
+        guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess else { return nil }
+        return staticCode
+    }
+
+    /// Подписано ли запущенное приложение ad-hoc (без сертификата).
+    private static func isAdHocSigned() -> Bool {
+        guard let code = currentStaticCode() else { return true }
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
+              let dict = info as? [String: Any] else { return true }
+        return dict[kSecCodeInfoCertificates as String] == nil
+    }
+
+    /// Проверяет, что бандл проходит строгую проверку целостности и удовлетворяет
+    /// назначенному требованию (designated requirement) запущенного приложения —
+    /// то есть подписан тем же сертификатом с тем же bundle id.
+    private static func verifySameSigner(at path: String) -> Bool {
+        guard let current = currentStaticCode() else { return false }
+        var requirement: SecRequirement?
+        guard SecCodeCopyDesignatedRequirement(current, [], &requirement) == errSecSuccess,
+              let requirement else { return false }
+        var candidate: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(URL(fileURLWithPath: path) as CFURL, [], &candidate) == errSecSuccess,
+              let candidate else { return false }
+        let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSCheckNestedCode | kSecCSStrictValidate)
+        let status = SecStaticCodeCheckValidity(candidate, flags, requirement)
+        if status != errSecSuccess { rslog("Update: SecStaticCodeCheckValidity = \(status)") }
+        return status == errSecSuccess
     }
 
     private static func sha256OfFile(at path: String) -> String? {

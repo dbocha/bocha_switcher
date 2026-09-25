@@ -17,7 +17,6 @@ final class SettingsManager: @unchecked Sendable {
         static let lastUpdateCheck = "com.ruswitcher.lastUpdateCheck"
         static let launchAtLogin = "com.ruswitcher.launchAtLogin"
         static let checkUpdatesEnabled = "com.ruswitcher.checkUpdatesEnabled"
-        static let betaChannelEnabled = "com.ruswitcher.betaChannelEnabled"
         static let interfaceLanguage = "com.ruswitcher.interfaceLanguage"
         static let permissionsWereGranted = "com.ruswitcher.permissionsWereGranted"
         static let launchAtLoginAsked = "com.ruswitcher.launchAtLoginAsked"
@@ -39,7 +38,6 @@ final class SettingsManager: @unchecked Sendable {
         static let showRemoteDesktopBeta = "com.ruswitcher.showRemoteDesktopBeta"
         static let autoConvertOffered = "com.ruswitcher.autoConvertOffered"
         static let lastWhatsNewVersion = "com.ruswitcher.lastWhatsNewVersion"
-        static let lastBetaNotesShown = "com.ruswitcher.lastBetaNotesShown"
         static let keySound = "com.ruswitcher.keySound"
         static let caretFlag = "com.ruswitcher.caretFlag"
         static let secureInputNotice = "com.ruswitcher.secureInputNotice"
@@ -102,14 +100,6 @@ final class SettingsManager: @unchecked Sendable {
     var checkUpdatesEnabled: Bool {
         get { defaults.object(forKey: Keys.checkUpdatesEnabled) as? Bool ?? true }
         set { defaults.set(newValue, forKey: Keys.checkUpdatesEnabled) }
-    }
-
-    /// Канал бета-версий: когда включён, авто-проверка обновлений также смотрит фид
-    /// пред-релизов (version-beta.json) и предлагает более свежую бету. По умолчанию
-    /// ВЫКЛ — обычные пользователи получают только стабильные релизы.
-    var betaChannelEnabled: Bool {
-        get { defaults.bool(forKey: Keys.betaChannelEnabled) }
-        set { defaults.set(newValue, forKey: Keys.betaChannelEnabled) }
     }
 
     /// Язык интерфейса (пустая строка = авто-определение по системе)
@@ -267,13 +257,6 @@ final class SettingsManager: @unchecked Sendable {
         set { defaults.set(newValue, forKey: Keys.lastWhatsNewVersion) }
     }
 
-    /// Последняя бета-версия, для которой показали окно «Что нового в бете» (отдельная
-    /// витрина беты — текст берётся из notes бета-фида, не из локализованного whatsnew.body).
-    var lastBetaNotesShown: String {
-        get { defaults.string(forKey: Keys.lastBetaNotesShown) ?? "" }
-        set { defaults.set(newValue, forKey: Keys.lastBetaNotesShown) }
-    }
-
     /// Предлагали ли уже автозамену при первом запуске (онбординг показывается один раз).
     var autoConvertOffered: Bool {
         get { defaults.bool(forKey: Keys.autoConvertOffered) }
@@ -328,25 +311,17 @@ final class SettingsManager: @unchecked Sendable {
     }
     var alwaysConvertWordsSet: Set<String> { Set(alwaysConvertWords.map { $0.lowercased() }) }
 
-    var donateURL: String { "https://boosty.to/ruswitcher" }
-    var contactEmail: String { "xrashid@gmail.com" }
-
     // MARK: - GitHub coordinates (единственный источник — чтобы при переименовании
     // репозитория правка была в одном месте)
-    static let githubOwner = "rashn"
-    static let githubRepo = "RuSwitcher"
+    static let githubOwner = "dbocha"
+    static let githubRepo = "bocha_switcher"
     static var githubURL: String { "https://github.com/\(githubOwner)/\(githubRepo)" }
-    /// Email для «Связаться с разработчиком» (mailto с предзаполнением). Пусто → кнопка
-    /// открывает GitHub Issues как фолбэк.
-    static let contactEmail = "r@nasibulin.ru"
-    /// Telegram-чат поддержки (t.me/…). Пусто → пункт меню скрыт. Инвайт-ссылка группы
-    /// обсуждения канала @RuSwitcher (её можно отозвать в настройках группы — тогда обновить).
-    static let telegramChatURL = "https://t.me/+rmD9Dc8USZlkYjEy"
-    /// Team ID (Apple Developer), которым подписаны релизы. Используется для
-    /// пиннинга подписи при авто-обновлении.
-    static let developerTeamID = "9GEWCZ59HK"
+    /// Фид обновлений: version.json в корне ветки main.
+    static var versionFeedURL: String { "https://raw.githubusercontent.com/\(githubOwner)/\(githubRepo)/main/version.json" }
+    /// Имя DMG в релизе: «<dmgBaseName>-<версия>.dmg».
+    static let dmgBaseName = "RuSwitcher"
     static func releaseDMGURL(version: String) -> String {
-        "\(githubURL)/releases/download/v\(version)/\(githubRepo)-\(version).dmg"
+        "\(githubURL)/releases/download/v\(version)/\(dmgBaseName)-\(version).dmg"
     }
 
     // MARK: - Login Item

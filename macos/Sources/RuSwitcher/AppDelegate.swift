@@ -27,7 +27,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let ranBefore = SettingsManager.shared.launchAtLoginAsked
         runPermissionWizard()
         showWhatsNewIfNeeded(hasRunBefore: ranBefore)
-        showBetaWhatsNewIfNeeded()   // отдельная витрина для бет (текст из бета-фида)
         UpdateChecker.checkOnLaunch()
         // Периодическая авто-проверка обновлений, пока приложение работает (не только на старте).
         // Тикает каждые 6ч; сам запрос к GitHub не чаще раза в сутки (троттл в UpdateChecker) и
@@ -735,29 +734,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        let donateItem = NSMenuItem(title: L10n.menuDonate, action: #selector(openDonate), keyEquivalent: "")
-        donateItem.target = self
-        menu.addItem(donateItem)
-
-        let starItem = NSMenuItem(title: L10n.menuStarOnGithub, action: #selector(openGitHub), keyEquivalent: "")
-        starItem.target = self
-        menu.addItem(starItem)
-
-        let shareItem = NSMenuItem(title: L10n.menuShare, action: nil, keyEquivalent: "")
-        shareItem.submenu = buildShareSubmenu()
-        menu.addItem(shareItem)
-
-        let contactItem = NSMenuItem(title: L10n.menuContactDeveloper, action: #selector(openContactEmail), keyEquivalent: "")
-        contactItem.target = self
-        contactItem.image = NSImage(systemSymbolName: "envelope", accessibilityDescription: nil)
-        menu.addItem(contactItem)
-
-        if !SettingsManager.telegramChatURL.isEmpty {
-            let tgItem = NSMenuItem(title: L10n.menuTelegramSupport, action: #selector(openTelegramSupport), keyEquivalent: "")
-            tgItem.target = self
-            tgItem.image = NSImage(systemSymbolName: "paperplane", accessibilityDescription: nil)
-            menu.addItem(tgItem)
-        }
+        let projectItem = NSMenuItem(title: L10n.menuProjectPage, action: #selector(openGitHub), keyEquivalent: "")
+        projectItem.target = self
+        menu.addItem(projectItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -976,12 +955,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         UpdateChecker.checkNow()
     }
 
-    @objc private func openDonate() {
-        if let url = URL(string: SettingsManager.shared.donateURL) {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
     @objc private func openGitHub() {
         if let url = URL(string: SettingsManager.githubURL) {
             NSWorkspace.shared.open(url)
@@ -995,9 +968,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func showWhatsNewIfNeeded(hasRunBefore: Bool) {
         let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
         guard !current.isEmpty else { return }
-        // Бета-версии (с буквой, напр. «3.2.0a») имеют ОТДЕЛЬНУЮ витрину
-        // (showBetaWhatsNewIfNeeded) с текстом из бета-фида; локализованный whatsnew.body
-        // под беты не обновляется (иначе тестер увидел бы устаревший текст).
+        // Пред-релизы (с буквой, напр. «3.2.0a») не показывают окно: локализованный
+        // whatsnew.body под них не обновляется.
         guard current.last?.isLetter != true else { return }
         let settings = SettingsManager.shared
         // Показываем только на РЕАЛЬНОМ повышении версии: current строго новее сохранённой
@@ -1023,119 +995,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
            let url = URL(string: "\(SettingsManager.githubURL)/releases/latest") {
             NSWorkspace.shared.open(url)
         }
-    }
-
-    /// Отдельная витрина для БЕТ: текст изменений берётся из notes бета-фида
-    /// (version-beta.json), а не из локализованного whatsnew.body — так его можно менять под
-    /// каждую бету без пересборки и ×16-локализации. Только для подписчиков беты, один раз на
-    /// версию. Текст двуязычный (RU+EN) — аудитория беты небольшая и приглашённая.
-    private func showBetaWhatsNewIfNeeded() {
-        let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
-        guard current.last?.isLetter == true else { return }         // только беты
-        guard SettingsManager.shared.betaChannelEnabled else { return }  // только подписчики беты
-        guard SettingsManager.shared.lastBetaNotesShown != current else { return }
-        guard monitoringActive else { return }                        // не поверх запроса прав
-        Task { @MainActor in
-            guard let notes = await UpdateChecker.fetchBetaNotes(), !notes.isEmpty else { return }
-            // перепроверяем после await (мог показаться параллельно / версия изменилась)
-            guard SettingsManager.shared.lastBetaNotesShown != current else { return }
-            SettingsManager.shared.lastBetaNotesShown = current
-            let alert = NSAlert()
-            alert.alertStyle = .informational
-            alert.messageText = "\(L10n.whatsNewTitle) \(current) \(L10n.updateBeta)"
-            alert.informativeText = notes
-            alert.addButton(withTitle: "OK")
-            alert.addButton(withTitle: L10n.whatsNewMore)
-            if alert.runModal() == .alertSecondButtonReturn,
-               let url = URL(string: "\(SettingsManager.githubURL)/releases") {
-                NSWorkspace.shared.open(url)
-            }
-        }
-    }
-
-    /// Подменю «Поделиться» — прямые share-intent ссылки на площадки, актуальные для
-    /// аудитории (Telegram/VK — главные для RU), + копирование. Нативный NSSharingServicePicker
-    /// на macOS для этого слаб (нет соцсетей/мессенджеров), поэтому свои web-intent'ы.
-    private func buildShareSubmenu() -> NSMenu {
-        let link = SettingsManager.githubURL
-        let text = L10n.shareMessage
-        let menu = NSMenu()
-
-        let copyItem = NSMenuItem(title: L10n.menuShareCopy, action: #selector(copyShareLink), keyEquivalent: "")
-        copyItem.target = self
-        copyItem.image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: nil)
-        menu.addItem(copyItem)
-        menu.addItem(NSMenuItem.separator())
-
-        // (заголовок, icon-slug, base, параметры). icon: ключ ShareIcons или "sf:<symbol>".
-        let targets: [(String, String, String, [(String, String)])] = [
-            ("Telegram", "telegram", "https://t.me/share/url",                 [("url", link), ("text", text)]),
-            ("VK",       "vk",       "https://vk.com/share.php",                [("url", link), ("title", text)]),
-            ("X",        "x",        "https://twitter.com/intent/tweet",        [("text", text), ("url", link)]),
-            ("WhatsApp", "whatsapp", "https://wa.me/",                          [("text", "\(text) \(link)")]),
-            ("Facebook", "facebook", "https://www.facebook.com/sharer/sharer.php", [("u", link)]),
-            ("Reddit",   "reddit",   "https://www.reddit.com/submit",           [("url", link), ("title", text)]),
-            (L10n.menuShareEmail, "sf:envelope", "mailto:",                     [("subject", "RuSwitcher"), ("body", "\(text) \(link)")]),
-        ]
-        for (title, icon, base, params) in targets {
-            guard let shareURL = Self.buildQueryURL(base, params) else { continue }
-            let item = NSMenuItem(title: title, action: #selector(openShareLink(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = shareURL
-            if icon.hasPrefix("sf:") {
-                item.image = NSImage(systemSymbolName: String(icon.dropFirst(3)), accessibilityDescription: nil)
-            } else {
-                item.image = ShareIcons.image(icon)
-            }
-            menu.addItem(item)
-        }
-        return menu
-    }
-
-    /// Собирает URL с корректно закодированными query-параметрами (в т.ч. mailto).
-    private static func buildQueryURL(_ base: String, _ params: [(String, String)]) -> String? {
-        var comps = URLComponents(string: base)
-        comps?.queryItems = params.map { URLQueryItem(name: $0.0, value: $0.1) }
-        // URLComponents кодирует пробел как %20 (не '+'), а литеральный '+' в значении
-        // оставляет как есть — но многие сервисы трактуют '+' как пробел. Поэтому
-        // однозначно кодируем именно '+' → %2B (пробелы уже %20, их не трогаем).
-        return comps?.url?.absoluteString.replacingOccurrences(of: "+", with: "%2B")
-    }
-
-    /// «Связаться с разработчиком»: открывает почту с предзаполненными темой и телом
-    /// (версия + macOS + активные раскладки — для полезного баг-репорта). Пока адрес не задан
-    /// (SettingsManager.contactEmail пуст) — фолбэк на GitHub Issues, чтобы кнопка не была мёртвой.
-    @objc private func openContactEmail() {
-        let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-        guard !SettingsManager.contactEmail.isEmpty else {
-            if let url = URL(string: "\(SettingsManager.githubURL)/issues") { NSWorkspace.shared.open(url) }
-            return
-        }
-        let os = ProcessInfo.processInfo.operatingSystemVersionString
-        let layouts = LayoutSwitcher.currentAndOppositeLanguage().map { "\($0.current)/\($0.opposite)" } ?? "?"
-        let subject = "RuSwitcher \(ver) — \(L10n.contactSubject)"
-        let body = "\n\n\n———\nRuSwitcher \(ver)\nmacOS \(os)\nLayouts: \(layouts)"
-        if let s = Self.buildQueryURL("mailto:\(SettingsManager.contactEmail)",
-                                      [("subject", subject), ("body", body)]),
-           let url = URL(string: s) {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    @objc private func openTelegramSupport() {
-        if let url = URL(string: SettingsManager.telegramChatURL) { NSWorkspace.shared.open(url) }
-    }
-
-    @objc private func openShareLink(_ sender: NSMenuItem) {
-        if let s = sender.representedObject as? String, let url = URL(string: s) {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    @objc private func copyShareLink() {
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.setString("\(L10n.shareMessage) \(SettingsManager.githubURL)", forType: .string)
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -50,6 +50,7 @@ enum L10n {
     static var settingsHotkey: String { s("settings.hotkey") }
     static var settingsStarOnGithub: String { s("settings.starOnGithub") }
     static var menuStarOnGithub: String { s("menu.starOnGithub") }
+    static var menuProjectPage: String { s("menu.projectPage") }
     static var menuShare: String { s("menu.share") }
     static var menuContactDeveloper: String { s("menu.contactDeveloper") }
     static var menuTelegramSupport: String { s("menu.telegramSupport") }
@@ -176,6 +177,7 @@ enum L10n {
             "menu.checkUpdates": "Check for Updates…",
             "menu.donate": "Support Development ❤️",
             "menu.starOnGithub": "⭐ Star on GitHub",
+            "menu.projectPage": "Project Page",
             "menu.share": "Share RuSwitcher",
             "menu.contactDeveloper": "Contact the developer",
             "menu.telegramSupport": "Support on Telegram",
@@ -294,6 +296,7 @@ enum L10n {
             "menu.checkUpdates": "Проверить обновления…",
             "menu.donate": "Поддержать разработку ❤️",
             "menu.starOnGithub": "⭐ Поставить звезду на GitHub",
+            "menu.projectPage": "Страница проекта",
             "menu.share": "Поделиться RuSwitcher",
             "menu.contactDeveloper": "Связаться с разработчиком",
             "menu.telegramSupport": "Поддержка в Telegram",

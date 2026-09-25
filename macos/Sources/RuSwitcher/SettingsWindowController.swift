@@ -388,24 +388,11 @@ final class SettingsWindowController {
         view.addSubview(versionLabel)
         y -= 40
 
-        // Кнопка "Звезда на GitHub"
-        let starBtn = NSButton(title: L10n.settingsStarOnGithub, target: self, action: #selector(openGitHub))
-        starBtn.frame = NSRect(x: 20, y: y, width: 420, height: 32)
-        starBtn.bezelStyle = .rounded
-        view.addSubview(starBtn)
-        y -= 40
-
-        // Кнопка доната
-        let donateBtn = NSButton(title: L10n.settingsDonate, target: self, action: #selector(openDonate))
-        donateBtn.frame = NSRect(x: 20, y: y, width: 200, height: 32)
-        donateBtn.bezelStyle = .rounded
-        view.addSubview(donateBtn)
-
-        // Кнопка контакта
-        let contactBtn = NSButton(title: L10n.settingsContact, target: self, action: #selector(openContact))
-        contactBtn.frame = NSRect(x: 230, y: y, width: 200, height: 32)
-        contactBtn.bezelStyle = .rounded
-        view.addSubview(contactBtn)
+        // Кнопка «Страница проекта»
+        let projectBtn = NSButton(title: L10n.menuProjectPage, target: self, action: #selector(openGitHub))
+        projectBtn.frame = NSRect(x: 20, y: y, width: 200, height: 32)
+        projectBtn.bezelStyle = .rounded
+        view.addSubview(projectBtn)
         y -= 40
 
         // Проверить обновления
@@ -426,22 +413,6 @@ final class SettingsWindowController {
 
         let view = NSView(frame: NSRect(x: 0, y: 0, width: 460, height: 480))
         var y: CGFloat = 430
-
-        // Бета-версии (пред-релизы) — для тестировщиков; по умолчанию ВЫКЛ.
-        let betaCheckbox = NSButton(checkboxWithTitle: L10n.settingsBetaChannel,
-                                    target: self, action: #selector(betaChannelChanged))
-        betaCheckbox.frame = NSRect(x: 20, y: y, width: 420, height: 22)
-        betaCheckbox.state = SettingsManager.shared.betaChannelEnabled ? .on : .off
-        betaCheckbox.toolTip = L10n.settingsBetaChannelHint
-        view.addSubview(betaCheckbox)
-        y -= 18
-
-        let betaHint = NSTextField(wrappingLabelWithString: L10n.settingsBetaChannelHint)
-        betaHint.frame = NSRect(x: 40, y: y - 18, width: 400, height: 32)
-        betaHint.font = .systemFont(ofSize: 11)
-        betaHint.textColor = .secondaryLabelColor
-        view.addSubview(betaHint)
-        y -= 47   // → 310, дальше idём по бегущему y
 
         // issue #22 (B): умная по-словная конверсия выделения. По умолчанию ВКЛ.
         let smartCheckbox = NSButton(checkboxWithTitle: L10n.settingsSmartConversion,
@@ -794,10 +765,6 @@ final class SettingsWindowController {
         onCaretFlagChanged?(enabled)
     }
 
-    @objc private func betaChannelChanged(_ sender: NSButton) {
-        SettingsManager.shared.betaChannelEnabled = sender.state == .on
-    }
-
     @objc private func smartConversionChanged(_ sender: NSButton) {
         SettingsManager.shared.smartConversion = sender.state == .on
     }
@@ -820,20 +787,6 @@ final class SettingsWindowController {
 
     @objc private func openGitHub() {
         if let url = URL(string: SettingsManager.githubURL) {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    @objc private func openDonate() {
-        if let url = URL(string: SettingsManager.shared.donateURL) {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    @objc private func openContact() {
-        let email = SettingsManager.shared.contactEmail
-        let subject = "RuSwitcher Feedback"
-        if let url = URL(string: "mailto:\(email)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? subject)") {
             NSWorkspace.shared.open(url)
         }
     }
