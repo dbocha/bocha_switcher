@@ -1,113 +1,88 @@
 #!/usr/bin/env swift
+// Генерирует иконку Bocha Switcher — оранжевая плашка с чёрным «EN/RU».
+// Использование: swift generate_icon.swift <путь/к/BochaSwitcher.iconset>
+// Дальше: iconutil -c icns <iconset> -o BochaSwitcher.icns (делает build_app.sh).
+
 import AppKit
 
-// Генерирует иконку RuSwitcher — клавиатура с RU/EN
-func generateIcon(size: Int) -> NSImage {
-    let img = NSImage(size: NSSize(width: size, height: size))
-    img.lockFocus()
+// Сетка macOS-иконки (Big Sur+): холст 1024, плашка 824 с отступом 100.
+let canvas: CGFloat = 1024
+let tile = NSRect(x: 100, y: 100, width: 824, height: 824)
+let cornerRadius: CGFloat = 185
 
-    let s = CGFloat(size)
-    let ctx = NSGraphicsContext.current!.cgContext
+let orangeTop = NSColor(srgbRed: 1.00, green: 0.62, blue: 0.10, alpha: 1)
+let orangeBottom = NSColor(srgbRed: 1.00, green: 0.48, blue: 0.00, alpha: 1)
 
-    // Фон — скруглённый прямоугольник (macOS style)
-    let bgRect = NSRect(x: s * 0.05, y: s * 0.05, width: s * 0.9, height: s * 0.9)
-    let bgPath = NSBezierPath(roundedRect: bgRect, xRadius: s * 0.18, yRadius: s * 0.18)
-
-    // Градиент фона
-    let gradient = NSGradient(colors: [
-        NSColor(red: 0.15, green: 0.35, blue: 0.75, alpha: 1.0),
-        NSColor(red: 0.10, green: 0.25, blue: 0.60, alpha: 1.0)
-    ])!
-    gradient.draw(in: bgPath, angle: -90)
-
-    // Две стрелки ↔ (символ переключения)
-    let arrowFont = NSFont.systemFont(ofSize: s * 0.18, weight: .medium)
-    let arrowAttrs: [NSAttributedString.Key: Any] = [
-        .font: arrowFont,
-        .foregroundColor: NSColor(white: 1.0, alpha: 0.3)
-    ]
-    let arrow = "⇄"
-    let arrowSize = arrow.size(withAttributes: arrowAttrs)
-    arrow.draw(at: NSPoint(x: (s - arrowSize.width) / 2, y: s * 0.58), withAttributes: arrowAttrs)
-
-    // "RU" текст (крупный, белый)
-    let ruFont = NSFont.systemFont(ofSize: s * 0.32, weight: .bold)
-    let ruAttrs: [NSAttributedString.Key: Any] = [
-        .font: ruFont,
-        .foregroundColor: NSColor.white
-    ]
-    let ruText = "RU"
-    let ruSize = ruText.size(withAttributes: ruAttrs)
-    ruText.draw(at: NSPoint(x: (s - ruSize.width) / 2, y: s * 0.25), withAttributes: ruAttrs)
-
-    // "EN" текст (мелкий, полупрозрачный)
-    let enFont = NSFont.systemFont(ofSize: s * 0.14, weight: .medium)
-    let enAttrs: [NSAttributedString.Key: Any] = [
-        .font: enFont,
-        .foregroundColor: NSColor(white: 1.0, alpha: 0.6)
-    ]
-    let enText = "EN"
-    let enSize = enText.size(withAttributes: enAttrs)
-    enText.draw(at: NSPoint(x: (s - enSize.width) / 2, y: s * 0.12), withAttributes: enAttrs)
-
-    img.unlockFocus()
-    return img
+func roundedFont(_ size: CGFloat) -> NSFont {
+    let base = NSFont.systemFont(ofSize: size, weight: .heavy)
+    guard let descriptor = base.fontDescriptor.withDesign(.rounded),
+          let font = NSFont(descriptor: descriptor, size: size) else { return base }
+    return font
 }
 
-func saveAsPNG(_ image: NSImage, path: String, size: Int) {
-    let rep = NSBitmapImageRep(
-        bitmapDataPlanes: nil,
-        pixelsWide: size,
-        pixelsHigh: size,
-        bitsPerSample: 8,
-        samplesPerPixel: 4,
-        hasAlpha: true,
-        isPlanar: false,
-        colorSpaceName: .deviceRGB,
-        bytesPerRow: 0,
-        bitsPerPixel: 0
-    )!
+/// Рисует строку так, чтобы центр её видимых глифов попал в `center`.
+func drawCentered(_ text: String, at center: NSPoint, font: NSFont, in ctx: CGContext) {
+    let attributed = NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: NSColor.black])
+    let line = CTLineCreateWithAttributedString(attributed)
+    let bounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+    ctx.textPosition = CGPoint(x: center.x - bounds.midX, y: center.y - bounds.midY)
+    CTLineDraw(line, ctx)
+}
 
+func drawIcon(in ctx: CGContext) {
+    let plate = NSBezierPath(roundedRect: tile, xRadius: cornerRadius, yRadius: cornerRadius)
+
+    // Тень под плашкой, как у системных иконок
     NSGraphicsContext.saveGraphicsState()
-    NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-    image.draw(in: NSRect(x: 0, y: 0, width: size, height: size))
+    let shadow = NSShadow()
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.28)
+    shadow.shadowOffset = NSSize(width: 0, height: -10)
+    shadow.shadowBlurRadius = 22
+    shadow.set()
+    orangeBottom.setFill()
+    plate.fill()
     NSGraphicsContext.restoreGraphicsState()
 
-    let data = rep.representation(using: .png, properties: [:])!
-    try! data.write(to: URL(fileURLWithPath: path))
+    NSGradient(starting: orangeTop, ending: orangeBottom)!.draw(in: plate, angle: -90)
+
+    // «EN» сверху слева, «RU» снизу справа, между ними — косая черта
+    let font = roundedFont(250)
+    drawCentered("EN", at: NSPoint(x: 370, y: 660), font: font, in: ctx)
+    drawCentered("RU", at: NSPoint(x: 654, y: 364), font: font, in: ctx)
+
+    let slash = NSBezierPath()
+    slash.move(to: NSPoint(x: 330, y: 300))
+    slash.line(to: NSPoint(x: 694, y: 724))
+    slash.lineWidth = 44
+    slash.lineCapStyle = .round
+    NSColor.black.setStroke()
+    slash.stroke()
 }
 
-let basePath = "/Volumes/MacHome/GitHome/RuSwitcher/Assets.xcassets/AppIcon.appiconset"
-
-// Размеры для macOS App Store
-let sizes = [16, 32, 64, 128, 256, 512, 1024]
-
-for size in sizes {
-    let icon = generateIcon(size: size)
-    saveAsPNG(icon, path: "\(basePath)/icon_\(size).png", size: size)
-    print("Generated icon_\(size).png")
+func renderPNG(pixels: Int) -> Data {
+    let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
+                               bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                               colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+    rep.size = NSSize(width: canvas, height: canvas)   // рисуем в координатах 1024
+    let context = NSGraphicsContext(bitmapImageRep: rep)!
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = context
+    drawIcon(in: context.cgContext)
+    NSGraphicsContext.restoreGraphicsState()
+    return rep.representation(using: .png, properties: [:])!
 }
 
-// Также сгенерируем iconset для .icns
-let iconsetPath = "/Volumes/MacHome/GitHome/RuSwitcher/RuSwitcher.iconset"
-try? FileManager.default.createDirectory(atPath: iconsetPath, withIntermediateDirectories: true)
-
-let iconsetSizes: [(String, Int)] = [
-    ("icon_16x16.png", 16),
-    ("icon_16x16@2x.png", 32),
-    ("icon_32x32.png", 32),
-    ("icon_32x32@2x.png", 64),
-    ("icon_128x128.png", 128),
-    ("icon_128x128@2x.png", 256),
-    ("icon_256x256.png", 256),
-    ("icon_256x256@2x.png", 512),
-    ("icon_512x512.png", 512),
-    ("icon_512x512@2x.png", 1024),
-]
-
-for (name, size) in iconsetSizes {
-    let icon = generateIcon(size: size)
-    saveAsPNG(icon, path: "\(iconsetPath)/\(name)", size: size)
+guard CommandLine.arguments.count == 2 else {
+    FileHandle.standardError.write("usage: swift generate_icon.swift <output.iconset>\n".data(using: .utf8)!)
+    exit(1)
 }
-print("Generated iconset")
-print("Done!")
+let iconsetURL = URL(fileURLWithPath: CommandLine.arguments[1])
+try FileManager.default.createDirectory(at: iconsetURL, withIntermediateDirectories: true)
+
+for base in [16, 32, 128, 256, 512] {
+    for scale in [1, 2] {
+        let name = scale == 1 ? "icon_\(base)x\(base).png" : "icon_\(base)x\(base)@2x.png"
+        try renderPNG(pixels: base * scale).write(to: iconsetURL.appendingPathComponent(name))
+    }
+}
+print("Iconset written to \(iconsetURL.path)")

@@ -47,3 +47,9 @@ jobs:
           name: ${{ steps.dmg.outputs.name }}
           path: ${{ steps.dmg.outputs.name }}.dmg
           retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: icon-preview
+          path: macos/.build/BochaSwitcher.iconset/icon_512x512@2x.png
+          retention-days: 7

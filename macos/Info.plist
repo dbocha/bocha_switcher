@@ -10,8 +10,6 @@
 	<string>BochaSwitcher</string>
 	<key>CFBundleIconFile</key>
 	<string>BochaSwitcher</string>
-	<key>CFBundleIconName</key>
-	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>world.whyia.bochaswitcher</string>
 	<key>CFBundleInfoDictionaryVersion</key>

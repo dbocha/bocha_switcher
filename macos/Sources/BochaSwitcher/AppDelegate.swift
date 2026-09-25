@@ -705,10 +705,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(caretFlagItem)
 
         // Единый стиль меню-бара (Sequoia): монохромная плашка вместо цветного флага.
-        let monoIconItem = NSMenuItem(title: L10n.menuMonoIcon, action: #selector(toggleMonoIcon), keyEquivalent: "")
-        monoIconItem.target = self
-        monoIconItem.state = SettingsManager.shared.monochromeIcon ? .on : .off
-        menu.addItem(monoIconItem)
 
         // Режим удалённого стола отложен в 2.5 — тумблер скрыт за флагом (для тестирования).
         if SettingsManager.shared.showRemoteDesktopBeta {
@@ -796,16 +792,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let flag = flagForCurrentLayout()
         // Каретку дёргаем ТОЛЬКО при реальной смене раскладки: updateStatusIcon зовётся ещё и
         // 2-секундным опросом-страховкой, иначе флаг у каретки выскакивал бы каждые 2с.
-        // Сравниваем по флагу-идентичности, а не по title — в монохромном режиме title пуст.
+        // Сравниваем по флагу-идентичности, а не по title — title у иконки пуст.
         let changed = lastFlagShown != flag
         lastFlagShown = flag
-        if SettingsManager.shared.monochromeIcon {
-            statusItem.button?.title = ""
-            statusItem.button?.image = badgeImage(for: currentBadgeLabel())
-        } else {
-            statusItem.button?.image = nil
-            statusItem.button?.title = flag
-        }
+        statusItem.button?.title = ""
+        statusItem.button?.image = badgeImage(for: currentBadgeLabel())
         if changed { caretIndicator?.layoutChanged() }
     }
 
@@ -815,7 +806,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             // 'iw' — устаревший код иврита: нормализуем, как и flagBadge.
             let code = LayoutDetector.isHebrew(lang) ? "he" : String(lang.prefix(2))
             let labels: [String: String] = [
-                "ru": "РУ", "en": "EN", "uk": "УК", "be": "БЕ",
+                "ru": "RU", "en": "EN", "uk": "УК", "be": "БЕ",
                 "de": "DE", "fr": "FR", "es": "ES", "it": "IT",
                 "pt": "PT", "pl": "PL", "ja": "あ", "zh": "拼", "ko": "한",
                 "he": "עב",   // иврит (3.0)
@@ -825,7 +816,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         // Язык раскладки недоступен — мягкий фолбэк по ID (как у flagForCurrentLayout).
         let id = LayoutSwitcher.currentLayoutID().lowercased()
-        return (id.contains("russian") || id.hasSuffix(".ru")) ? "РУ" : "EN"
+        return (id.contains("russian") || id.hasSuffix(".ru")) ? "RU" : "EN"
     }
 
     /// Монохромная плашка в стиле системного индикатора раскладки Sequoia: скруглённый
@@ -918,12 +909,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         sender.state = SettingsManager.shared.caretFlag ? .on : .off
         settingsController.updateCaretFlagState(SettingsManager.shared.caretFlag)
         syncCaretIndicator()   // создать/снести индикатор и обновить гейт onUserInput
-    }
-
-    @objc private func toggleMonoIcon(_ sender: NSMenuItem) {
-        SettingsManager.shared.monochromeIcon.toggle()
-        sender.state = SettingsManager.shared.monochromeIcon ? .on : .off
-        updateStatusIcon()   // перерисовать в новом стиле сразу
     }
 
     @objc private func toggleRemoteDesktop(_ sender: NSMenuItem) {

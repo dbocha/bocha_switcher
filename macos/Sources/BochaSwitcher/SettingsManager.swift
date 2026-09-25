@@ -41,7 +41,6 @@ final class SettingsManager: @unchecked Sendable {
         static let keySound = "com.bochaswitcher.keySound"
         static let caretFlag = "com.bochaswitcher.caretFlag"
         static let secureInputNotice = "com.bochaswitcher.secureInputNotice"
-        static let monochromeIcon = "com.bochaswitcher.monochromeIcon"
         static let deniedAppsAdded = "com.bochaswitcher.deniedAppsAdded"
         static let deniedAppsRemoved = "com.bochaswitcher.deniedAppsRemoved"
         static let deniedWords = "com.bochaswitcher.deniedWords"
@@ -267,13 +266,6 @@ final class SettingsManager: @unchecked Sendable {
     var keySound: Bool {
         get { defaults.bool(forKey: Keys.keySound) }
         set { defaults.set(newValue, forKey: Keys.keySound) }
-    }
-
-    /// Иконка меню-бара в системном стиле: монохромная плашка «РУ/EN» (template)
-    /// вместо цветного флага-эмодзи. По умолчанию OFF — флаг привычнее.
-    var monochromeIcon: Bool {
-        get { defaults.bool(forKey: Keys.monochromeIcon) }
-        set { defaults.set(newValue, forKey: Keys.monochromeIcon) }
     }
 
     /// Приложения, где авто-конверсия выключена. Эффективный список = дефолты минус

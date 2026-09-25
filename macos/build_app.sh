@@ -54,8 +54,11 @@ cp "$PROJECT_DIR/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
   || /usr/libexec/PlistBuddy -c "Add :RSDevTag string $DEV_TAG" "$APP_BUNDLE/Contents/Info.plist"
 echo "→ Stamped Info.plist: CFBundleShortVersionString=$SHORT_VERSION$DEV_TAG CFBundleVersion=$BUILD_VERSION"
 
-# 5. Копируем иконку
-cp "$PROJECT_DIR/BochaSwitcher.icns" "$APP_BUNDLE/Contents/Resources/BochaSwitcher.icns"
+# 5. Генерируем иконку из кода (generate_icon.swift) и собираем .icns
+ICONSET="$PROJECT_DIR/.build/$APP_NAME.iconset"
+rm -rf "$ICONSET"
+swift "$PROJECT_DIR/generate_icon.swift" "$ICONSET"
+iconutil -c icns "$ICONSET" -o "$APP_BUNDLE/Contents/Resources/$APP_NAME.icns"
 
 # 6. Создаём PkgInfo
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
