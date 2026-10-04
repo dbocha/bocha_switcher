@@ -29,6 +29,8 @@ jobs:
 
       - name: Deploy to Cloudflare Workers
         if: steps.creds.outputs.ok == 'true'
+        env:
+          WRANGLER_SEND_METRICS: "false"
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
