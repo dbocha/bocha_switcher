@@ -30,6 +30,16 @@ enum Dict {
         _ = isValidWord("test", lang: "en")
     }
 
+    /// Словарная проверка без учёта регистра (Caps Lock и заглавная в начале фразы не мешают).
+    /// В немецком существительные пишутся с заглавной, и словарь отвергает их в нижнем
+    /// регистре («zeitung») — для `de` дополнительно пробуем форму с заглавной («Zeitung»).
+    @MainActor static func isValidWordIgnoringCase(_ word: String, lang: String) -> Bool {
+        let lower = word.lowercased()
+        if isValidWord(lower, lang: lang) { return true }
+        guard lang.lowercased().hasPrefix("de"), let first = lower.first else { return false }
+        return isValidWord(String(first).uppercased() + lower.dropFirst(), lang: lang)
+    }
+
     /// true — слово есть в словаре языка (орфография корректна).
     @MainActor static func isValidWord(_ word: String, lang: String) -> Bool {
         let range = checker.checkSpelling(of: word, startingAt: 0, language: lang,
@@ -100,10 +110,10 @@ enum LayoutDetector {
                 // тот же класс, что «думаю vs дума.» в 2.7.0). Словарю отдаём только
                 // целиком буквенный образ; иначе .undecided — ручной триггер работает.
                 guard converted.allSatisfy({ $0.isLetter }) else { return .undecided }
-                return Dict.isValidWord(converted.lowercased(), lang: sideLang)
+                return Dict.isValidWordIgnoringCase(converted, lang: sideLang)
                     ? .switchToConverted : .undecided
             }
-            return Dict.isValidWord(typed.lowercased(), lang: sideLang) ? .keep : .undecided
+            return Dict.isValidWordIgnoringCase(typed, lang: sideLang) ? .keep : .undecided
         }
 
         // --- Короткие (2-буквенные) слова: позитивный частотный сигнал (3.1, issue #22) ---
@@ -124,8 +134,8 @@ enum LayoutDetector {
 
         // Словарь — без учёта регистра (Caps Lock не должен мешать определению слова).
         guard Dict.isAvailable(oth) else { return .undecided }
-        guard Dict.isValidWord(converted.lowercased(), lang: oth) else { return .keep }
-        if Dict.isAvailable(cur), Dict.isValidWord(typed.lowercased(), lang: cur) {
+        guard Dict.isValidWordIgnoringCase(converted, lang: oth) else { return .keep }
+        if Dict.isAvailable(cur), Dict.isValidWordIgnoringCase(typed, lang: cur) {
             return .keep
         }
         return .switchToConverted

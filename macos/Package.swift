@@ -14,6 +14,12 @@ let package = Package(
                 .linkedFramework("CoreGraphics"),
                 .linkedFramework("ServiceManagement"),
             ]
-        )
+        ),
+        // Тесты логики раскладок на настоящих раскладках macOS (запускаются в CI: swift test)
+        .testTarget(
+            name: "BochaSwitcherTests",
+            dependencies: ["BochaSwitcher"],
+            path: "Tests/BochaSwitcherTests"
+        ),
     ]
 )

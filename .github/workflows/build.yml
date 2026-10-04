@@ -52,6 +52,11 @@ jobs:
           security find-identity -v -p codesigning "$KEYCHAIN"
           echo "identity=Bocha Switcher Signing" >> "$GITHUB_OUTPUT"
 
+      # Логика раскладок на настоящих раскладках macOS (ru/en/de/cs)
+      - name: Unit tests
+        working-directory: macos
+        run: swift test
+
       # Universal (arm64 + x86_64) .app
       - name: Build app
         env:

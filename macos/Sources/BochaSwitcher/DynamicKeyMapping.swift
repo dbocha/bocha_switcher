@@ -227,17 +227,66 @@ enum DynamicKeyMapping {
               let targetData = layoutDataForSource(target) else {
             return nil
         }
+        return convertKeys(keys, sourceData: sourceData, targetData: targetData)
+    }
 
-        var original = "", converted = ""
+    /// Ядро convertKeys для заданной пары раскладок (тестируется отдельно, без системного состояния).
+    /// original — как набрано в исходной раскладке (1 клавиша = 1 символ, инвариант стирания);
+    /// converted — как вышло бы в целевой: её мёртвые клавиши складываются со следующей
+    /// («ˇ»+«t» → «ť» в чешской), поэтому converted может быть короче keys.
+    /// nil — если клавиша не разрешилась или в ИСХОДНОЙ раскладке встретилась мёртвая клавиша
+    /// (немецкая «^» на месте «ё»): в поле она слилась со следующей буквой, счёт стирания
+    /// по keys разъедется с полем — вызывающий уходит на clipboard-путь.
+    static func convertKeys(_ keys: [TypedKey], sourceData: Data, targetData: Data) -> (original: String, converted: String)? {
+        var original = ""
         for k in keys {
-            guard let sc = translateKeycode(k.keyCode, layoutData: sourceData, shift: k.shift, caps: k.caps),
-                  let tc = translateKeycode(k.keyCode, layoutData: targetData, shift: k.shift, caps: k.caps) else {
+            if isDeadKey(k.keyCode, layoutData: sourceData, shift: k.shift, caps: k.caps) { return nil }
+            guard let sc = translateKeycode(k.keyCode, layoutData: sourceData, shift: k.shift, caps: k.caps) else {
                 return nil
             }
             original.append(sc)
-            converted.append(tc)
         }
+        guard let converted = composeKeys(keys, layoutData: targetData) else { return nil }
         return (original, converted)
+    }
+
+    /// Печатает последовательность клавиш в раскладке так, как это сделала бы система:
+    /// мёртвая клавиша копит состояние и складывается со следующей («´»+«e» → «é»),
+    /// несочетаемая пара даёт оба символа («ˇ»+«x» → «ˇx»), висящая в конце — сам знак.
+    static func composeKeys(_ keys: [TypedKey], layoutData: Data) -> String? {
+        var deadKeyState: UInt32 = 0
+        var result = ""
+        for k in keys {
+            guard let out = translateWithState(k.keyCode, layoutData: layoutData, shift: k.shift,
+                                                caps: k.caps, deadKeyState: &deadKeyState) else { return nil }
+            result += out
+        }
+        if deadKeyState != 0 {
+            // Висящая мёртвая клавиша: «дожимаем» пробелом — система отдаёт сам диакритический знак.
+            guard let tail = translateWithState(UInt16(kVK_Space), layoutData: layoutData, shift: false,
+                                                 caps: false, deadKeyState: &deadKeyState) else { return nil }
+            result += tail
+        }
+        return result.isEmpty ? nil : result
+    }
+
+    /// UCKeyTranslate с включёнными мёртвыми клавишами и переносом состояния между вызовами.
+    /// Пустая строка — клавиша мёртвая (символ появится со следующей); nil — ошибка/управляющий символ.
+    private static func translateWithState(_ keycode: UInt16, layoutData: Data, shift: Bool, caps: Bool,
+                                           deadKeyState: inout UInt32) -> String? {
+        var chars = [UniChar](repeating: 0, count: 4)
+        var length = 0
+        var mods: UInt32 = shift ? (UInt32(shiftKey >> 8) & 0xFF) : 0
+        if caps { mods |= UInt32(alphaLock >> 8) & 0xFF }
+        let r = layoutData.withUnsafeBytes { raw -> OSStatus in
+            guard let ptr = raw.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return -1 }
+            return UCKeyTranslate(ptr, keycode, UInt16(kUCKeyActionDown), mods, UInt32(LMGetKbdType()),
+                                  0 /* dead keys ВКЛючены */, &deadKeyState, chars.count, &length, &chars)
+        }
+        guard r == noErr else { return nil }
+        let s = String(utf16CodeUnits: chars, count: length)
+        if s.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }) { return nil }
+        return s
     }
 
     /// issue #24: восстанавливает как-НАБРАННУЮ строку из буфера строки (буквы → символ ТЕКУЩЕЙ

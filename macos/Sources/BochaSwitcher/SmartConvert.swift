@@ -94,11 +94,11 @@ enum SmartConvert {
         }
 
         // 3+ — словарь. Уже валидное слово своего языка → не трогаем (iPhone, стоит).
-        if Dict.isValidWord(core.lowercased(), lang: wordLang) { return .keep }
+        if Dict.isValidWordIgnoringCase(core, lang: wordLang) { return .keep }
         // (1) флип целиком — ловит «ёлка» (`krf), «делю» (ltk.), «продолжение».
         let whole = DynamicKeyMapping.convertBidirectional(w)
         let wc = letterCore(whole)
-        if wc.count >= 2, wc.allSatisfy({ $0.isLetter }), Dict.isValidWord(wc.lowercased(), lang: flipLang) {
+        if wc.count >= 2, wc.allSatisfy({ $0.isLetter }), Dict.isValidWordIgnoringCase(wc, lang: flipLang) {
             return .flip(whole, flippedScript)
         }
         // (2) со снятым хвостом реальной пунктуации — «ghtlkj;tybt,» → «продолжение» + «,».
@@ -106,7 +106,7 @@ enum SmartConvert {
         if !suffix.isEmpty, !body.isEmpty {
             let bflip = DynamicKeyMapping.convertBidirectional(body)
             let bc = letterCore(bflip)
-            if bc.count >= 2, bc.allSatisfy({ $0.isLetter }), Dict.isValidWord(bc.lowercased(), lang: flipLang) {
+            if bc.count >= 2, bc.allSatisfy({ $0.isLetter }), Dict.isValidWordIgnoringCase(bc, lang: flipLang) {
                 return .flip(bflip + suffix, flippedScript)
             }
         }
@@ -167,11 +167,22 @@ enum SmartConvert {
         return !cyrillicLangs.contains(two) && !nonLatinLangs.contains(two)
     }
 
+    /// Латинская буква, включая диакритику европейских языков (ä ö ü ß é ñ č ř ž ů…):
+    /// Basic Latin + Latin-1 Supplement + Latin Extended-A/B, кроме знаков × и ÷.
+    private static func isLatinLetter(_ u: Unicode.Scalar) -> Bool {
+        switch u.value {
+        case 0x41...0x5A, 0x61...0x7A: return true
+        case 0xD7, 0xF7: return false
+        case 0xC0...0x24F: return u.properties.isAlphabetic
+        default: return false
+        }
+    }
+
     private static func dominantScript(_ s: String) -> Script {
         var cyr = 0, lat = 0
         for u in s.unicodeScalars {
             if u.value >= 0x0400 && u.value <= 0x04FF { cyr += 1 }
-            else if (u.value >= 0x41 && u.value <= 0x5A) || (u.value >= 0x61 && u.value <= 0x7A) { lat += 1 }
+            else if isLatinLetter(u) { lat += 1 }
         }
         if cyr > 0 && lat > 0 { return .mixed }
         if cyr > 0 { return .cyr }

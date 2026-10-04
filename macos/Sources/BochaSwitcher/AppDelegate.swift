@@ -504,7 +504,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         var keys = allKeys
         var suffix = ""
         let split = LayoutDetector.splitTrailingPunctuation(fullPair.original)
-        if !split.suffix.isEmpty, split.coreLength > 0, fullPair.original.count == allKeys.count {
+        if !split.suffix.isEmpty, split.coreLength > 0, fullPair.original.count == allKeys.count,
+           fullPair.converted.count == allKeys.count {   // мёртвые клавиши цели сжали converted — индексы не совпадут
             keys = Array(allKeys.prefix(split.coreLength))
             suffix = split.suffix
         }
@@ -546,7 +547,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             for ch in fullConv[split.coreLength...] {
                 guard ch.isLetter else { break }
                 candidate.append(ch)
-                if Dict.isValidWord(candidate.lowercased(), lang: oth) {
+                if Dict.isValidWordIgnoringCase(candidate, lang: oth) {
                     rslog("auto: bail ambiguous-suffix")
                     return
                 }
