@@ -152,9 +152,9 @@ enum LayoutDetector {
     /// Вместо словаря — компактный список ЧАСТЫХ коротких слов (ShortWords), строго как
     /// позитивный сигнал: конвертим 2 буквы ТОЛЬКО если конверсия — частое слово целевого
     /// языка, а набранное — не частое слово текущего (симметрия как у иврит-ветки).
-    /// Коллизий «частое↔частое» нет (аудит образов раскладки). Пары с языком без списка
+    /// Коллизии «частое↔частое» — только осознанные (см. ShortWords; снимок в ShortWordsAuditTests):
+    /// такие слова в обоих списках, симметричный .keep их не трогает. Пары с языком без списка
     /// сюда не попадают → 2-буквенные, как и раньше, не трогаются.
-
     private static func shortWordVerdict(typed: String, converted: String, cur: String, oth: String) -> LayoutVerdict {
         guard let othShort = ShortWords.common(oth) else { return .undecided }
         if let curShort = ShortWords.common(cur), curShort.contains(typed.lowercased()) {
