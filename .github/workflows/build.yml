@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore: ['site/**', '.github/workflows/site.yml', '**.md']
   pull_request:
   workflow_dispatch:
 
@@ -121,5 +122,7 @@ jobs:
           print(json.dumps(feed, indent=2, ensure_ascii=False))
           PY
           NOTES=$(python3 -c "import json;print(json.load(open('version.json')).get('notes') or 'Bocha Switcher $VERSION')")
-          gh release create "$GITHUB_REF_NAME" "$DMG" "$FEED_DIR/version.json" \
+          # Копия без версии в имени — на неё ведёт bochaswitcher.com/get
+          cp "$DMG" "$FEED_DIR/BochaSwitcher.dmg"
+          gh release create "$GITHUB_REF_NAME" "$DMG" "$FEED_DIR/BochaSwitcher.dmg" "$FEED_DIR/version.json" \
             --title "Bocha Switcher $VERSION" --notes "$NOTES"

@@ -2,11 +2,11 @@
 
 Приложение для меню-бара macOS: исправляет текст, набранный не в той раскладке (`ghbdtn` → `привет`), по хоткею и автоматически.
 
-macOS 13+, Apple Silicon и Intel.
+macOS 13+, Apple Silicon и Intel. Сайт: [bochaswitcher.com](https://bochaswitcher.com).
 
 ## Установка
 
-1. Скачайте `BochaSwitcher-X.Y.Z.dmg` из [последнего релиза](https://github.com/dbocha/bocha_switcher/releases/latest).
+1. Скачайте DMG на [bochaswitcher.com/download](https://bochaswitcher.com/download/) или из [последнего релиза](https://github.com/dbocha/bocha_switcher/releases/latest).
 2. Перетащите **Bocha Switcher** в «Программы» и запустите.
 3. macOS предупредит, что разработчик не проверен. Откройте «Системные настройки → Конфиденциальность и безопасность» и нажмите «Всё равно открыть».
 4. Выдайте разрешения «Универсальный доступ» и «Мониторинг ввода» — приложение подскажет, где.

@@ -60,6 +60,11 @@
 ### 6. Тестирование
 Хоткей и автоисправление в Safari, Chrome, Telegram, Slack, VS Code, Terminal/iTerm, Notes, Mail, Pages. В полях паролей — **не срабатывать**. Отдельно: откат повторным нажатием, выделенный текст, слова с `,.;:` на конце, короткие слова.
 
+### 7. Сайт bochaswitcher.com
+- Статика в `site/public` (EN + `/ru/`), Worker `site/src/worker.js`: `www` → основной домен, `/get` → последний DMG на GitHub Releases, `/release.json` → версия и SHA-256 из фида.
+- Деплой — `.github/workflows/site.yml` (wrangler) при изменениях в `site/`. Нужны секреты `CLOUDFLARE_API_TOKEN` (шаблон «Edit Cloudflare Workers», зона bochaswitcher.com) и `CLOUDFLARE_ACCOUNT_ID`.
+- Оформление — как у bochavoice.com (общая палитра и вёрстка). RuSwitcher на сайте не упоминается; `LICENSE` лежит в репозитории и внутри `.app`.
+
 ## Бэклог
 - Детектор из [graninilya/keyswitcher](https://github.com/graninilya/keyswitcher) (MIT; hunspell + n-граммы), если автоисправление окажется слабым.
 - Звуки под бренд.

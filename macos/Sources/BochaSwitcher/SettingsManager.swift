@@ -308,6 +308,8 @@ final class SettingsManager: @unchecked Sendable {
     static let githubOwner = "dbocha"
     static let githubRepo = "bocha_switcher"
     static var githubURL: String { "https://github.com/\(githubOwner)/\(githubRepo)" }
+    /// Сайт приложения — пункт меню «Страница проекта».
+    static let websiteURL = "https://bochaswitcher.com"
     /// Фид обновлений: version.json, приложенный к последнему релизу рядом с DMG —
     /// появляется одновременно с DMG, в момент публикации релиза.
     static var versionFeedURL: String { "\(githubURL)/releases/latest/download/version.json" }

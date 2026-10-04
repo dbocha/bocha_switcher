@@ -728,7 +728,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        let projectItem = NSMenuItem(title: L10n.menuProjectPage, action: #selector(openGitHub), keyEquivalent: "")
+        let projectItem = NSMenuItem(title: L10n.menuProjectPage, action: #selector(openProjectPage), keyEquivalent: "")
         projectItem.target = self
         menu.addItem(projectItem)
 
@@ -911,8 +911,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         UpdateChecker.checkNow()
     }
 
-    @objc private func openGitHub() {
-        if let url = URL(string: SettingsManager.githubURL) {
+    @objc private func openProjectPage() {
+        if let url = URL(string: SettingsManager.websiteURL) {
             NSWorkspace.shared.open(url)
         }
     }

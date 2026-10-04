@@ -60,6 +60,9 @@ rm -rf "$ICONSET"
 swift "$PROJECT_DIR/generate_icon.swift" "$ICONSET"
 iconutil -c icns "$ICONSET" -o "$APP_BUNDLE/Contents/Resources/$APP_NAME.icns"
 
+# 5a. Текст лицензии внутри приложения
+cp "$PROJECT_DIR/../LICENSE" "$APP_BUNDLE/Contents/Resources/LICENSE"
+
 # 6. Создаём PkgInfo
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
 
