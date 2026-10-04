@@ -64,6 +64,9 @@
 - Статика в `site/public` (EN + `/ru/`), Worker `site/src/worker.js`: `www` → основной домен, `/get` → последний DMG на GitHub Releases, `/release.json` → версия и SHA-256 из фида.
 - Деплой — `.github/workflows/site.yml` (wrangler) при изменениях в `site/`. Нужны секреты `CLOUDFLARE_API_TOKEN` (шаблон «Edit Cloudflare Workers», зона bochaswitcher.com) и `CLOUDFLARE_ACCOUNT_ID`.
 - Оформление — как у bochavoice.com (общая палитра и вёрстка). RuSwitcher на сайте не упоминается; `LICENSE` лежит в репозитории и внутри `.app`.
+- Тексты страниц — в `site/tools/build_pages.py` (после правки: `python3 site/tools/build_pages.py site/public`). Картинки для соцсетей — `site/tools/og.html` → `node site/tools/render_og.mjs`.
+- SEO: title/description под запросы «переключатель раскладки для Mac», «аналог Punto Switcher»; OG-картинки EN/RU; schema.org `SoftwareApplication`; `sitemap.xml`, `robots.txt`, hreflang.
+- После запуска сайта: добавить его в Google Search Console и Яндекс Вебмастер, отправить `sitemap.xml`.
 
 ## Бэклог
 - Детектор из [graninilya/keyswitcher](https://github.com/graninilya/keyswitcher) (MIT; hunspell + n-граммы), если автоисправление окажется слабым.

@@ -30,3 +30,7 @@ generate_habr_cover.swift
 # Ключи подписи — только в секретах GitHub и в ~/.bocha-signing
 *.p12
 *.key
+
+# site tooling
+site/tools/inter/
+node_modules/

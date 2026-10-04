@@ -1,0 +1,77 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+/* Social card (1200x630) for bochaswitcher.com. Render: node site/tools/render_og.mjs (needs `npm i playwright` and Inter in site/tools/inter/, https://rsms.me/inter). Output: site/public/assets/og-en.png, og-ru.png */
+@font-face { font-family: Inter; src: url(inter/InterVariable.ttf); font-weight: 100 900; }
+* { margin: 0; box-sizing: border-box; }
+body { width: 1200px; height: 630px; overflow: hidden; background: #0f1216; font-family: Inter, sans-serif; color: #f4f1ea; position: relative; }
+.bg { position: absolute; inset: 0; background:
+  radial-gradient(520px 420px at 900px 320px, rgba(255,138,61,.16), transparent 70%),
+  radial-gradient(700px 500px at 0 0, rgba(255,138,61,.07), transparent 70%); }
+canvas { position: absolute; left: 0; top: 0; width: 1200px; height: 630px; }
+.copy { position: absolute; left: 76px; top: 70px; width: 620px; }
+.brand { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; }
+.brand img { width: 72px; height: 72px; }
+h1 { margin-top: 56px; font-size: 74px; line-height: 1.02; font-weight: 800; letter-spacing: -.045em; }
+h1 span { color: #ff8a3d; display: block; }
+body.ru h1 { font-size: 60px; }
+.swap { margin-top: 34px; display: inline-flex; align-items: center; gap: 16px; padding: 14px 22px; border-radius: 16px;
+  background: #1c2025; border: 1px solid #2c333b; font-size: 30px; font-weight: 600; }
+.swap s { color: #848c96; text-decoration-color: rgba(255,138,61,.7); text-decoration-thickness: 2px; }
+.swap i { font-style: normal; color: #ff8a3d; }
+.foot { position: absolute; left: 76px; bottom: 56px; font-size: 24px; color: #a8aeb6; display: flex; gap: 14px; align-items: center; }
+.foot b { color: #f4f1ea; font-weight: 600; }
+.foot .dot { width: 6px; height: 6px; border-radius: 50%; background: #848c96; }
+</style></head><body>
+<div class="bg"></div><canvas id="c" width="2400" height="1260"></canvas>
+<div class="copy">
+  <div class="brand"><img src="../public/assets/icon-256.png" alt=""><span>Bocha Switcher</span></div>
+  <h1 id="h1"></h1>
+  <div class="swap"><s>ghbdtn</s><i>→</i><b>привет</b></div>
+</div>
+<div class="foot" id="foot"></div>
+<script>
+const lang = new URLSearchParams(location.search).get('lang') || 'en';
+const T = {
+  en: { h1: 'Wrong layout?<span>One tap fixes it.</span>', foot: ['<b>Free for Mac</b>', 'Open source', 'bochaswitcher.com'] },
+  ru: { h1: 'Не та раскладка?<span>Исправит одно нажатие.</span>', foot: ['<b>Бесплатно для Mac</b>', 'Открытый код', 'bochaswitcher.com'] },
+}[lang];
+document.getElementById('h1').innerHTML = T.h1;
+document.body.classList.add(lang);
+document.getElementById('foot').innerHTML = T.foot.join('<span class="dot"></span>');
+
+const ctx = document.getElementById('c').getContext('2d');
+ctx.scale(2, 2);
+const cx = 960, cy = 320, TILT = .42, H = 62, R = 430;
+let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const words = [['ghbdtn','привет'],['ищсрф','bocha'],['rfr ltkf','как дела'],['руддщ','hello'],['ntrcn','текст'],['цщкв','word'],
+  ['hfcrkflrf','раскладка'],['ыцшеср','switch'],['cgfcb,j','спасибо'],['ьфс','mac'],['pfdnhf','завтра'],['дфнщге','layout'],
+  ['jrtq','окей'],['мщшсу','voice'],['lfdfq','давай'],['ерфтлы','thanks'],['ytn','нет'],['ыршз','ship']];
+const rings = [{ n: 4, r: H * 2.05, off: .55 }, { n: 6, r: H * 3.55, off: .2 }, { n: 8, r: H * 5.5, off: .05 }];
+let k = 0; const items = [];
+for (const ring of rings) for (let i = 0; i < ring.n; i++) items.push({ w: words[k++ % words.length], a: ring.off + (i / ring.n) * Math.PI * 2, r: ring.r });
+const drawWord = ({ w, a, r }) => {
+  const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * TILT, t = r / R, fixed = t < .42;
+  let rot = Math.atan2(TILT * Math.cos(a), -Math.sin(a));
+  if (rot > Math.PI / 2) rot -= Math.PI; else if (rot < -Math.PI / 2) rot += Math.PI;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot * (.4 + .6 * (1 - t)));
+  ctx.globalAlpha = (Math.sin(a) < 0 ? .4 : .62) * Math.min(1, (1.12 - t) / .25);
+  ctx.fillStyle = fixed ? '#f4f1ea' : '#ffb071';
+  ctx.font = `${fixed ? 650 : 500} ${(13 + 15 * Math.sqrt(t)).toFixed(1)}px Inter`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fixed ? w[1] : w[0], 0, 0); ctx.restore();
+};
+document.fonts.load('600 20px Inter').then(() => {
+  items.filter(i => Math.sin(i.a) < 0).forEach(drawWord);
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(1, TILT);
+  for (const [m, a] of [[1.7,.22],[2.6,.13],[3.8,.07],[5.2,.04]]) { ctx.beginPath(); ctx.arc(0,0,H*m,0,Math.PI*2); ctx.strokeStyle=`rgba(255,138,61,${a})`; ctx.lineWidth=1.2; ctx.stroke(); }
+  ctx.restore();
+  const g = ctx.createRadialGradient(cx, cy, H * .8, cx, cy, H * 2.8);
+  g.addColorStop(0, 'rgba(255,138,61,.42)'); g.addColorStop(.35, 'rgba(255,138,61,.12)'); g.addColorStop(1, 'rgba(255,138,61,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, H * 2.8, 0, Math.PI * 2); ctx.fill();
+  const c = ctx.createRadialGradient(cx, cy, 0, cx, cy, H * 1.08);
+  c.addColorStop(0, '#000'); c.addColorStop(.86, '#020304'); c.addColorStop(1, 'rgba(2,3,4,0)');
+  ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx, cy, H * 1.08, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, H * 1.01, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,176,113,.65)'; ctx.lineWidth = 1.5;
+  ctx.shadowColor = 'rgba(255,138,61,.95)'; ctx.shadowBlur = 22; ctx.stroke(); ctx.shadowBlur = 0;
+  items.filter(i => Math.sin(i.a) >= 0).forEach(drawWord);
+  document.body.dataset.ready = '1';
+});
+</script></body></html>
