@@ -1,6 +1,6 @@
 // Bocha Switcher — bochaswitcher.com
 // Static site from ./public, plus three small routes:
-//   www.*          → 301 to the bare domain
+//   http, www.*    → 301 to https://bochaswitcher.com
 //   /get           → 302 to the latest DMG on GitHub Releases
 //   /release.json  → version and SHA-256 of the latest release (from its update feed)
 
@@ -11,8 +11,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.hostname.startsWith("www.")) {
-      url.hostname = url.hostname.slice(4);
+    // One hop to the canonical origin: https, no www
+    if (url.protocol === "http:" || url.hostname.startsWith("www.")) {
+      url.protocol = "https:";
+      if (url.hostname.startsWith("www.")) url.hostname = url.hostname.slice(4);
       return Response.redirect(url.toString(), 301);
     }
 
