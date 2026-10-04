@@ -111,6 +111,13 @@ final class DetectorTests: XCTestCase {
 
     func testDictionariesAvailable() {
         for lang in ["ru", "en", "de", "cs"] { XCTAssertTrue(Dict.isAvailable(lang), lang) }
+        for lang in ["ru", "en", "de"] { XCTAssertTrue(Dict.isReliable(lang), lang) }
+    }
+
+    /// Чешский словарь macOS принимает любую бессмыслицу — детектор опирается на вторую сторону.
+    /// Если тест упал, в macOS появился настоящий чешский словарь: обновите заметки в ShortWords/decide.
+    func testCzechDictionaryIsBlind() {
+        XCTAssertFalse(Dict.isReliable("cs"))
     }
 
     func testGermanNounsInLowercase() {
@@ -123,14 +130,18 @@ final class DetectorTests: XCTestCase {
         XCTAssertEqual(verdict("ztn", "нет", "cs", "ru"), .switchToConverted)
         XCTAssertEqual(verdict("ыекф-у", "straße", "ru", "de"), .switchToConverted)
         XCTAssertEqual(verdict("нушегтп", "zeitung", "ru", "de"), .switchToConverted)
-        XCTAssertEqual(verdict("в2лгош", "děkuji", "ru", "cs"), .switchToConverted)
         XCTAssertEqual(verdict("zes", "yes", "de", "en"), .switchToConverted)
     }
 
     func testKeepsCorrectWords() {
         XCTAssertEqual(verdict("danke", "вфтлу", "de", "ru"), .keep)
-        XCTAssertEqual(verdict("děkuji", "в2лгош", "cs", "ru"), .keep)
+        XCTAssertNotEqual(verdict("děkuji", "в2лгош", "cs", "ru"), .switchToConverted)
         XCTAssertEqual(verdict("name", "name", "de", "en"), .keep)
+    }
+
+    /// Направление «в чешский» без словаря не проверить — только ручной ⌥ (и частые короткие слова).
+    func testCzechTypedInRussianLeftToTrigger() {
+        XCTAssertEqual(verdict("в2лгош", "děkuji", "ru", "cs"), .undecided)
     }
 
     func testShortWords() {
@@ -151,12 +162,17 @@ final class ShortWordsAuditTests: XCTestCase {
         return DynamicKeyMapping.composeKeys(k, layoutData: to)
     }
 
+    /// Охранные токены (vs/dj/kb/…) пересекаются намеренно — их образ и есть частое ru-слово.
+    private let guards: Set<String> = ["vs", "dj", "kb", "jr", "bp", "ds", "ye"]
+
     private func collisions(_ a: String, _ langA: String, _ b: String, _ langB: String) throws -> Set<String> {
         let da = try layoutData(a), db = try layoutData(b)
         let wa = try XCTUnwrap(ShortWords.common(langA)), wb = try XCTUnwrap(ShortWords.common(langB))
         var found: Set<String> = []
-        for w in wa { if let i = image(w, from: da, to: db), i != w, wb.contains(i.lowercased()) { found.insert("\(w)→\(i)") } }
-        for w in wb { if let i = image(w, from: db, to: da), i != w, wa.contains(i.lowercased()) { found.insert("\(w)→\(i)") } }
+        for w in wa { if let i = image(w, from: da, to: db), i != w, wb.contains(i.lowercased()),
+                         !guards.contains(w), !guards.contains(i) { found.insert("\(w)→\(i)") } }
+        for w in wb { if let i = image(w, from: db, to: da), i != w, wa.contains(i.lowercased()),
+                         !guards.contains(w), !guards.contains(i) { found.insert("\(w)→\(i)") } }
         return found
     }
 

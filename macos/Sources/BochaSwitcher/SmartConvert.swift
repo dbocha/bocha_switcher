@@ -94,7 +94,8 @@ enum SmartConvert {
         }
 
         // 3+ — словарь. Уже валидное слово своего языка → не трогаем (iPhone, стоит).
-        if Dict.isValidWordIgnoringCase(core, lang: wordLang) { return .keep }
+        // Слепой словарь (Dict.isReliable) «подтверждает» любое слово — его keep ничего не значит.
+        if Dict.isReliable(wordLang), Dict.isValidWordIgnoringCase(core, lang: wordLang) { return .keep }
         // (1) флип целиком — ловит «ёлка» (`krf), «делю» (ltk.), «продолжение».
         let whole = DynamicKeyMapping.convertBidirectional(w)
         let wc = letterCore(whole)

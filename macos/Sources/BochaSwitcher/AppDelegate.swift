@@ -540,7 +540,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Для пар с ивритом walk не нужен: направление «в иврит» авто-путём не конвертится
         // by design (см. иврит-ветку decide), а ивритский словарь принимает любые буквы —
         // walk дал бы бессмысленный bail на первом же шаге и мусорную строку в логе.
-        if !suffix.isEmpty, !LayoutDetector.isHebrew(langs.opposite), Dict.isAvailable(langs.opposite) {
+        if !suffix.isEmpty, !LayoutDetector.isHebrew(langs.opposite), Dict.isAvailable(langs.opposite),
+           Dict.isReliable(langs.opposite) {
             let oth = String(langs.opposite.prefix(2))
             let fullConv = Array(fullPair.converted)
             var candidate = String(fullConv[..<split.coreLength])

@@ -256,12 +256,15 @@ enum DynamicKeyMapping {
     static func composeKeys(_ keys: [TypedKey], layoutData: Data) -> String? {
         var deadKeyState: UInt32 = 0
         var result = ""
+        var endsWithDeadKey = false
         for k in keys {
             guard let out = translateWithState(k.keyCode, layoutData: layoutData, shift: k.shift,
                                                 caps: k.caps, deadKeyState: &deadKeyState) else { return nil }
             result += out
+            endsWithDeadKey = out.isEmpty
         }
-        if deadKeyState != 0 {
+        // После составной буквы состояние может остаться ненулевым — это не висящая клавиша.
+        if endsWithDeadKey, deadKeyState != 0 {
             // Висящая мёртвая клавиша: «дожимаем» пробелом — система отдаёт сам диакритический знак.
             guard let tail = translateWithState(UInt16(kVK_Space), layoutData: layoutData, shift: false,
                                                  caps: false, deadKeyState: &deadKeyState) else { return nil }

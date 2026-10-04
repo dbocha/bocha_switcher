@@ -30,6 +30,21 @@ enum Dict {
         _ = isValidWord("test", lang: "en")
     }
 
+    @MainActor private static var reliability: [String: Bool] = [:]
+
+    /// Пригоден ли словарь языка для детекта. Некоторые словари macOS принимают любой набор
+    /// букв (ивритский; чешский на macOS 26 — проверено в CI): «слово» для них всё. Проверяем
+    /// на заведомой бессмыслице в письменности языка; результат кэшируем на язык.
+    @MainActor static func isReliable(_ lang: String) -> Bool {
+        let two = String(lang.lowercased().prefix(2))
+        if let known = reliability[two] { return known }
+        let cyrillic: Set<String> = ["ru", "uk", "be", "bg", "sr", "mk", "kk", "ky", "mn", "tg"]
+        let gibberish = cyrillic.contains(two) ? ["ъыщйцук", "жщъьэюф"] : ["qxzjvkw", "zzqpxtv"]
+        let reliable = isAvailable(two) && !gibberish.allSatisfy { isValidWord($0, lang: two) }
+        reliability[two] = reliable
+        return reliable
+    }
+
     /// Словарная проверка без учёта регистра (Caps Lock и заглавная в начале фразы не мешают).
     /// В немецком существительные пишутся с заглавной, и словарь отвергает их в нижнем
     /// регистре («zeitung») — для `de` дополнительно пробуем форму с заглавной («Zeitung»).
@@ -84,52 +99,42 @@ enum LayoutDetector {
         let cur = String(currentLang.prefix(2))
         let oth = String(otherLang.prefix(2))
 
-        // --- Кросс-скрипт пары с ивритом (3.0) ---
-        // Системный ивритский словарь macOS для детекта БЕСПОЛЕЗЕН: он принимает любой
-        // набор букв как «валидное слово» (проверено эмпирически), двусторонняя проверка
-        // на стороне иврита невозможна. Поэтому конвертим ТОЛЬКО при положительном
-        // сигнале второй (не-ивритской) стороны — её собственным словарём:
-        //   • набрано в иврит-раскладке, а конверсия — валидное слово второй раскладки
-        //     → задумана она, конвертим;
-        //   • набрано во второй раскладке и это её валидное слово → keep (не трогаем);
-        //   • всё остальное (имена, бренды, опечатки, «задуман иврит») → .undecided:
-        //     направление «в иврит» без словаря честно не решаемо — точность важнее
+        // --- Пары со «слепым» словарём (иврит 3.0; чешский — см. Dict.isReliable) ---
+        // Ивритский словарь macOS принимает любой набор букв (проверено эмпирически), чешский на
+        // macOS 26 — тоже: двусторонняя проверка на слепой стороне невозможна. Поэтому конвертим
+        // ТОЛЬКО при положительном сигнале второй (зрячей) стороны — её собственным словарём:
+        //   • набрано в слепой раскладке, а конверсия — валидное слово зрячей → конвертим;
+        //   • набрано в зрячей раскладке и это её валидное слово → keep (не трогаем);
+        //   • всё остальное (имена, бренды, опечатки, «задуман слепой язык») → .undecided:
+        //     направление «в слепой язык» без словаря честно не решаемо — точность важнее
         //     полноты. Ручной триггер конвертирует любые пары всегда.
-        // Второй словарь берём по ЯЗЫКУ ПАРЫ (ru/de/fr/…), не хардкодим en — иначе
-        // пара русский+иврит конвертила бы каждое валидное русское слово в иврит
-        // (ревью-находка июльского аудита).
-        if isHebrew(cur) || isHebrew(oth) {
-            guard typed.count >= 3 else { return .undecided }              // короткий частотный сигнал для иврита не строим
-            let hebrewIsCurrent = isHebrew(cur)
-            let sideLang = hebrewIsCurrent ? oth : cur
-            guard !isHebrew(sideLang), Dict.isAvailable(sideLang) else { return .undecided }
-            if hebrewIsCurrent {
-                // NSSpellChecker токенизирует («привет!» для него валиден), а часть ивритских
-                // букв живёт на пунктуационных клавишах — EN-образ КОРРЕКТНОГО иврита может
-                // получиться «слово + пунктуация» и ложно пройти словарь (ревью-находка,
-                // тот же класс, что «думаю vs дума.» в 2.7.0). Словарю отдаём только
-                // целиком буквенный образ; иначе .undecided — ручной триггер работает.
+        // Зрячий словарь берём по ЯЗЫКУ ПАРЫ (ru/de/fr/…), не хардкодим en — иначе пара
+        // русский+иврит конвертила бы каждое валидное русское слово в иврит (ревью-находка
+        // июльского аудита). Для слепого языка со списком частых коротких слов (cs) 2-буквенные
+        // решает тот же частотный сигнал, что и ниже; для иврита короткие не трогаем.
+        let curBlind = isHebrew(cur) || !Dict.isReliable(cur)
+        let othBlind = isHebrew(oth) || !Dict.isReliable(oth)
+        if curBlind || othBlind {
+            if typed.count == 2, !isHebrew(cur), !isHebrew(oth) {
+                return shortWordVerdict(typed: typed, converted: converted, cur: cur, oth: oth)
+            }
+            guard typed.count >= 3, curBlind != othBlind else { return .undecided }
+            let sideLang = curBlind ? oth : cur
+            guard Dict.isAvailable(sideLang) else { return .undecided }
+            if curBlind {
+                // NSSpellChecker токенизирует («привет!» для него валиден), а часть букв слепой
+                // раскладки живёт на пунктуационных клавишах — образ КОРРЕКТНОГО слова может
+                // получиться «слово + пунктуация» и ложно пройти словарь (ревью-находка, тот же
+                // класс, что «думаю vs дума.» в 2.7.0). Словарю отдаём только целиком буквенный образ.
                 guard converted.allSatisfy({ $0.isLetter }) else { return .undecided }
-                return Dict.isValidWordIgnoringCase(converted, lang: sideLang)
-                    ? .switchToConverted : .undecided
+                return Dict.isValidWordIgnoringCase(converted, lang: sideLang) ? .switchToConverted : .undecided
             }
             return Dict.isValidWordIgnoringCase(typed, lang: sideLang) ? .keep : .undecided
         }
 
         // --- Короткие (2-буквенные) слова: позитивный частотный сигнал (3.1, issue #22) ---
-        // NSSpellChecker на длине 2 принимает почти любой набор букв за «слово», поэтому
-        // обычная двусторонняя проверка тут ненадёжна (ради этого и стоял гейт count>=3).
-        // Вместо словаря — компактный список ЧАСТЫХ коротких слов (ShortWords), строго как
-        // позитивный сигнал: конвертим 2 буквы ТОЛЬКО если конверсия — частое слово целевого
-        // языка, а набранное — не частое слово текущего (симметрия как у иврит-ветки).
-        // Коллизий «частое↔частое» нет (аудит образов раскладки). Пары с языком без списка
-        // сюда не попадают → 2-буквенные, как и раньше, не трогаются.
         if typed.count == 2 {
-            guard let othShort = ShortWords.common(oth) else { return .undecided }
-            if let curShort = ShortWords.common(cur), curShort.contains(typed.lowercased()) {
-                return .keep   // уже частое слово в текущей раскладке — не трогаем
-            }
-            return othShort.contains(converted.lowercased()) ? .switchToConverted : .undecided
+            return shortWordVerdict(typed: typed, converted: converted, cur: cur, oth: oth)
         }
 
         // Словарь — без учёта регистра (Caps Lock не должен мешать определению слова).
@@ -139,6 +144,23 @@ enum LayoutDetector {
             return .keep
         }
         return .switchToConverted
+    }
+
+    /// Короткие (2-буквенные) слова: позитивный частотный сигнал (3.1, issue #22).
+    /// NSSpellChecker на длине 2 принимает почти любой набор букв за «слово», поэтому
+    /// обычная двусторонняя проверка тут ненадёжна (ради этого и стоял гейт count>=3).
+    /// Вместо словаря — компактный список ЧАСТЫХ коротких слов (ShortWords), строго как
+    /// позитивный сигнал: конвертим 2 буквы ТОЛЬКО если конверсия — частое слово целевого
+    /// языка, а набранное — не частое слово текущего (симметрия как у иврит-ветки).
+    /// Коллизий «частое↔частое» нет (аудит образов раскладки). Пары с языком без списка
+    /// сюда не попадают → 2-буквенные, как и раньше, не трогаются.
+
+    private static func shortWordVerdict(typed: String, converted: String, cur: String, oth: String) -> LayoutVerdict {
+        guard let othShort = ShortWords.common(oth) else { return .undecided }
+        if let curShort = ShortWords.common(cur), curShort.contains(typed.lowercased()) {
+            return .keep   // уже частое слово в текущей раскладке — не трогаем
+        }
+        return othShort.contains(converted.lowercased()) ? .switchToConverted : .undecided
     }
 
     /// issue #15: отщепляет прилипшую к концу слова пунктуацию ("ghbdtn," → ядро 6 + ",").
